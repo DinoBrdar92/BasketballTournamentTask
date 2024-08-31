@@ -22,14 +22,6 @@ namespace BasketballTournamentTask_cdbhnd
                 Team1 = team1;
                 Team2 = team2;
             }
-
-            public Game(Team team1, Team team2, int team1Score, int team2Score)
-            {
-                Team1 = team1;
-                Team2 = team2;
-                Team1Score = team1Score;
-                Team2Score = team2Score;
-            }
         }
 
         public static DbContext Dbc { get; set; } = new();
@@ -71,6 +63,7 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine("      .,::OOO::,.     .,ooOOOoo,.     .,::OOO::,.\r\n    .:'         `:. .8'         `8. .:'         `:.\r\n    :\"           \": 8\"           \"8 :\"           \":\r\n    :,        .,:::\"\"::,.     .,:o8OO::,.        ,:__  o\\\r\n     :,,    .:' ,:   8oo`:. .:'oo8   :,,`:.    ,,:  W    \\O\r\n      `^OOoo:\"O^'     `^88oo:\"8^'     `^O\":ooOO^'         |\\_\r\n            :,           ,: :,           ,:              /-\\\r\n             :,,       ,,:   :,,       ,,:               \\   \\\r\n              `^Oo,,,oO^'     `^OOoooOO^'");
             Console.WriteLine("\n");
             Console.WriteLine("                   - GROUP STAGE -");
+
             foreach (var groupStage in groupStages)
             {
                 Console.WriteLine($"{groupStage.Key}:");
@@ -103,9 +96,7 @@ namespace BasketballTournamentTask_cdbhnd
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
 
                 string[] teamCodesInGroup = allTeams.Values.Where(p => p.Group == group.Key).Select(x => x.ISOCode).ToArray();
-
                 List<Team> teamsInGroup = allTeams.Values.Where(p => p.Group == group.Key).ToList();
-
                 var threeTeamTie = teamsInGroup.GroupBy(x => x.Points).Where(x => x.Count() > 2).ToList();
 
                 if (threeTeamTie.Count == 1 && (threeTeamTie.FirstOrDefault()).Count() == 3)
@@ -314,14 +305,10 @@ namespace BasketballTournamentTask_cdbhnd
             Team goldTeam = finalTeams.Item1;
 
             Console.WriteLine("\nMedalje:");
-            Console.WriteLine($"\t1. {goldTeam.Name}");
-            Console.WriteLine($"\t2. {silverTeam.Name}");
-            Console.WriteLine($"\t3. {bronzeTeam.Name}");
+            Console.WriteLine($"\t1. {goldTeam.Name} - GOLD");
+            Console.WriteLine($"\t2. {silverTeam.Name} - SILVER");
+            Console.WriteLine($"\t3. {bronzeTeam.Name} - BRONZE");
 
-
-
-            Environment.Exit(0);
-            
         }
 
 
@@ -515,82 +502,13 @@ namespace BasketballTournamentTask_cdbhnd
 
         private static double RandomFromNormalDistribution(double mean, double stdDev)
         {
-            Random rand = new Random(); //reuse this if you are generating many
-            double u1 = 1.0 - rand.NextDouble(); //uniform(0,1] random doubles
+            Random rand = new Random();
+            double u1 = 1.0 - rand.NextDouble();
             double u2 = 1.0 - rand.NextDouble();
-            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2); //random normal(0,1)
+            double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
             double randNormal = mean + stdDev * randStdNormal; //random normal(mean,stdDev^2)
 
             return randNormal;
-        }
-
-        private static Dictionary<string, int> SumRows(Dictionary<string, Dictionary<string, int>> dictionary)
-        {
-            Dictionary<string, int> summedRows = new Dictionary<string, int>();
-
-            foreach (var outerItem in dictionary)
-            {
-                int sum = 0;
-
-                foreach (var innerItem in outerItem.Value)
-                {
-                    sum += innerItem.Value;
-                }
-
-                summedRows.Add(outerItem.Key, sum);
-            }
-
-            return summedRows;
-        }
-
-        static Dictionary<TKey, Dictionary<TSubKey, TValue>> DeepCopy<TKey, TSubKey, TValue>(Dictionary<TKey, Dictionary<TSubKey, TValue>> original)
-        {
-            var copy = new Dictionary<TKey, Dictionary<TSubKey, TValue>>();
-
-            foreach (var kvp in original)
-            {
-                var innerCopy = new Dictionary<TSubKey, TValue>(kvp.Value);
-                copy[kvp.Key] = innerCopy;
-            }
-
-            return copy;
-        }
-
-        private static Dictionary<string, Dictionary<string, int>> GetSubDictionary(Dictionary<string, Dictionary<string, int>> dictionary, string[] keys, bool keepKeys = true)
-        {
-            var subDictionary = DeepCopy(dictionary);
-
-            foreach (var outerItem in subDictionary)
-            {
-                if (keys.Contains(outerItem.Key) && !keepKeys || !keys.Contains(outerItem.Key) && keepKeys)
-                {
-                    subDictionary.Remove(outerItem.Key);
-                    continue;
-                }
-
-                foreach (var innerItem in outerItem.Value)
-                {
-                    if (keys.Contains(innerItem.Key) && !keepKeys || !keys.Contains(innerItem.Key) && keepKeys)
-                    {
-                        outerItem.Value.Remove(innerItem.Key);
-                    }
-                }
-
-            }
-
-            return subDictionary;
-        }
-
-        private static List<Team> TeamCodesToTeams(List<string> teamCodesSorted)
-        {
-            List<Team> teams = new List<Team>();
-
-            foreach (var teamCode in teamCodesSorted)
-            {
-                teams.Add(allTeams.FirstOrDefault(x => x.Key == teamCode).Value);
-            }
-
-            return teams;
         }
     }
 }
