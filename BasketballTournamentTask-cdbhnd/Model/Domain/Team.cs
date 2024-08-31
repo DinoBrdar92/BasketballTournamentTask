@@ -19,6 +19,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
         public int PointsReceived { get; set; }
         public int PointsDifference => PointsScored - PointsReceived;
         public double ELORating { get; set; }
+        public bool IsInThreeTeamTie { get; set; } = false;
 
         public Dictionary<string, HeadToHeadStats> HeadToHead { get; set; } = new Dictionary<string, HeadToHeadStats>();
 

@@ -64,10 +64,16 @@ namespace BasketballTournamentTask_cdbhnd
                 { "II kolo", [(1, 2),(3, 0)] },
                 { "III kolo", [(1, 3),(0, 2)] }
             };
-            
+
+            Console.WriteLine("  ***************************************************");
+            Console.WriteLine(" * OLYMPICS 2024 - BASKETBALL TOURNAMENT SIMULATOR *");
+            Console.WriteLine("**************************************************");
+            Console.WriteLine("      .,::OOO::,.     .,ooOOOoo,.     .,::OOO::,.\r\n    .:'         `:. .8'         `8. .:'         `:.\r\n    :\"           \": 8\"           \"8 :\"           \":\r\n    :,        .,:::\"\"::,.     .,:o8OO::,.        ,:__  o\\\r\n     :,,    .:' ,:   8oo`:. .:'oo8   :,,`:.    ,,:  W    \\O\r\n      `^OOoo:\"O^'     `^88oo:\"8^'     `^O\":ooOO^'         |\\_\r\n            :,           ,: :,           ,:              /-\\\r\n             :,,       ,,:   :,,       ,,:               \\   \\\r\n              `^Oo,,,oO^'     `^OOoooOO^'");
+            Console.WriteLine("\n");
+            Console.WriteLine("                   - GROUP STAGE -");
             foreach (var groupStage in groupStages)
             {
-                Console.WriteLine($"Grupna faza - {groupStage.Key}:");
+                Console.WriteLine($"{groupStage.Key}:");
 
                 foreach (var group in Dbc.GroupsDto)
                 {
@@ -90,7 +96,7 @@ namespace BasketballTournamentTask_cdbhnd
 
             SortedDictionary<string, List<Team>> groups = new();
 
-            Console.WriteLine("\nKonačan plasman u grupama:\nW - pobede\nL - porazi\nPts - bodovi\nFOR - postignuti koševi\nAGT - primljeni koševi\n-/+ - koš razlika");
+            Console.WriteLine("\n\n                    - GROUPS -");
             foreach (var group in Dbc.GroupsDto)
             {
                 Console.WriteLine($"\nGrupa {group.Key}:\t\t|Pts| W | L | FOR | AGT | -/+");
@@ -99,6 +105,48 @@ namespace BasketballTournamentTask_cdbhnd
                 string[] teamCodesInGroup = allTeams.Values.Where(p => p.Group == group.Key).Select(x => x.ISOCode).ToArray();
 
                 List<Team> teamsInGroup = allTeams.Values.Where(p => p.Group == group.Key).ToList();
+
+                var threeTeamTie = teamsInGroup.GroupBy(x => x.Points).Where(x => x.Count() > 2).ToList();
+
+                if (threeTeamTie.Count == 1 && (threeTeamTie.FirstOrDefault()).Count() == 3)
+                {
+                    threeTeamTie.FirstOrDefault().All(x => x.IsInThreeTeamTie = true);
+
+                    var threeTeamTieList = teamsInGroup.Where(x => x.Points == threeTeamTie.FirstOrDefault().FirstOrDefault().Points).ToList();
+
+                    string[] threeTeamTieNameCodes = new string[3];
+
+                    for (int i = 0; i < 3; i++)
+                    {
+                        threeTeamTieNameCodes[i] = teamsInGroup.Where(x => x.Points == threeTeamTie.FirstOrDefault().FirstOrDefault().Points).ToList()[i].ISOCode;
+                    }
+
+                    foreach (Team team in threeTeamTieList)
+                    {
+                        //KeyValuePair<string, HeadToHeadStats> otherTwo = new KeyValuePair<string, HeadToHeadStats>(team.ISOCode, new HeadToHeadStats());
+                        team.HeadToHead.Add("otherTwo", new HeadToHeadStats());
+
+                        foreach (string nameCode in threeTeamTieNameCodes)
+                        {
+                            HeadToHeadStats h2hWithOneOfOtherTeams;
+
+                            if (team.ISOCode == nameCode)
+                            {
+                                continue;
+                            }
+
+                            h2hWithOneOfOtherTeams = team.HeadToHead[nameCode];
+
+                            team.HeadToHead["otherTwo"].Wins += h2hWithOneOfOtherTeams.Wins;
+                            team.HeadToHead["otherTwo"].Losses += h2hWithOneOfOtherTeams.Losses;
+                            team.HeadToHead["otherTwo"].PointsScored += h2hWithOneOfOtherTeams.PointsScored;
+                            team.HeadToHead["otherTwo"].PointsReceived += h2hWithOneOfOtherTeams.PointsReceived;
+
+                        }
+                    }
+
+                }
+
 
                 teamsInGroup.Sort(new GroupTeamComparer());
 
@@ -130,7 +178,7 @@ namespace BasketballTournamentTask_cdbhnd
                 sameRankSubTable.Sort(new CrossGroupTeamComparer());
                 bigTable.AddRange(sameRankSubTable);
             }
-
+            Console.WriteLine("\n\n                      - DRAW -");
             Console.WriteLine("\nPlasman od 1. do 9. mesta nakon grupne faze:");
             Console.WriteLine($"\n\t\t\t|Pts| W | L | FOR | AGT | -/+");
             Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
@@ -175,7 +223,7 @@ namespace BasketballTournamentTask_cdbhnd
 
                 foreach (var team in hats[i])
                 {
-                    Console.WriteLine($"\t\t{team.Name} ({team.Group})");
+                    Console.WriteLine($"\t\t{team.Name} [{team.Group}]");
                 }
             }
 
@@ -218,9 +266,7 @@ namespace BasketballTournamentTask_cdbhnd
                 quarterfinalGames.AddRange(potentialPairs);
             }
 
-            Console.WriteLine("\nEliminaciona faza:");
-
-
+            Console.WriteLine("\nIzvučeni parovi:");
             for (int i = 0; i < quarterfinalGames.Count; i++)
             {
                 Console.WriteLine($"\t{quarterfinalGames[i].Team1.Name} - {quarterfinalGames[i].Team2.Name}");
@@ -230,6 +276,9 @@ namespace BasketballTournamentTask_cdbhnd
                     Console.WriteLine();
                 }
             }
+
+            Console.WriteLine("\n\n              - KNOCKOUT STAGE -");
+
 
             //TODO: SimulateKnockoutStage()
             List<Game> semifinalGames = new List<Game>();
@@ -341,9 +390,9 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine($"\t\t{team1Name} - {team2Name} ({team1Score}:{team2Score}){overtimeText}");
 
             HeadToHeadStats team1H2H = new HeadToHeadStats();
-            team1.HeadToHead.Add(team2.ISOCode, team1H2H);
-
             HeadToHeadStats team2H2H = new HeadToHeadStats();
+
+            team1.HeadToHead.Add(team2.ISOCode, team1H2H);
             team2.HeadToHead.Add(team1.ISOCode, team2H2H);
 
             team1.PointsScored += team1Score;
@@ -500,7 +549,6 @@ namespace BasketballTournamentTask_cdbhnd
 
             foreach (var kvp in original)
             {
-                // For each key-value pair in the outer dictionary, create a new inner dictionary
                 var innerCopy = new Dictionary<TSubKey, TValue>(kvp.Value);
                 copy[kvp.Key] = innerCopy;
             }
