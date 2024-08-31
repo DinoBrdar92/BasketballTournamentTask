@@ -2,6 +2,7 @@
 using BasketballTournamentTask_cdbhnd.Model;
 using BasketballTournamentTask_cdbhnd.Model.Domain;
 using BasketballTournamentTask_cdbhnd.Model.Entities;
+using System.Collections;
 using System.Collections.Generic;
 using System.Text.Json;
 
@@ -35,7 +36,6 @@ namespace BasketballTournamentTask_cdbhnd
 
         private static Dictionary<string, Team> allTeams = new();
 
-        private static List<Game> allGames = new();
         static void Main(string[] args)
         {
             Dbc = new DbContext();
@@ -93,22 +93,25 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine("\nKonačan plasman u grupama:\nW - pobede\nL - porazi\nPts - bodovi\nFOR - postignuti koševi\nAGT - primljeni koševi\n-/+ - koš razlika");
             foreach (var group in Dbc.GroupsDto)
             {
-                Console.WriteLine($"\nGrupa {group.Key}:\t\t| W | L |Pts| FOR | AGT | -/+");
+                Console.WriteLine($"\nGrupa {group.Key}:\t\t|Pts| W | L | FOR | AGT | -/+");
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
-                List<Team> teams = allTeams.Values.Where(p => p.Group == group.Key).OrderBy(q => q.Wins).Reverse().ToList();
-                groups.Add(group.Key, teams);
-                //TODO: SortTable(teams);
+
+                string[] teamCodesInGroup = allTeams.Values.Where(p => p.Group == group.Key).Select(x => x.ISOCode).ToArray();
+
+                List<Team> teamsInGroup = allTeams.Values.Where(p => p.Group == group.Key).ToList();
+
+                teamsInGroup.Sort(new GroupTeamComparer());
+
+                groups.Add(group.Key, teamsInGroup);
                 
 
-                for (int i = 0; i < teams.Count; i++)
+                for (int i = 0; i < teamsInGroup.Count; i++)
                 {
-                    int points = teams[i].Wins * 2 + teams[i].Losses * 1;
-                    int pointDifferential = teams[i].PointsScored - teams[i].PointsReceived;
-                    string preSpaces = Math.Abs(pointDifferential).ToString().Length == 1 ? "  " : Math.Abs(pointDifferential).ToString().Length == 2 ? " " : "";
-                    char prefix = pointDifferential < 0 ? '-' : '+';
+                    string preSpaces = Math.Abs(teamsInGroup[i].PointsDifference).ToString().Length == 1 ? "  " : Math.Abs(teamsInGroup[i].PointsDifference).ToString().Length == 2 ? " " : "";
+                    char prefix = teamsInGroup[i].PointsDifference < 0 ? '-' : '+';
+                    string tabSeparator = teamsInGroup[i].Name.Length > 16 ? "\t" : "\t\t";
 
-                    string tabSeparator = teams[i].Name.Length > 16 ? "\t" : "\t\t";
-                    Console.WriteLine($"{i + 1}. {teams[i].Name}{tabSeparator}| {teams[i].Wins} | {teams[i].Losses} | {points} | {teams[i].PointsScored} | {teams[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(pointDifferential)}");
+                    Console.WriteLine($"{i + 1}. {teamsInGroup[i].Name}{tabSeparator}| {teamsInGroup[i].Points} | {teamsInGroup[i].Wins} | {teamsInGroup[i].Losses} | {teamsInGroup[i].PointsScored} | {teamsInGroup[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(teamsInGroup[i].PointsDifference)}");
                 }
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
             }
@@ -124,14 +127,25 @@ namespace BasketballTournamentTask_cdbhnd
                     sameRankSubTable.Add(group[i]);
                 }
 
-                var sameRankTableSorted = sameRankSubTable.OrderBy(x => x.Wins).ThenBy(x => x.PointsScored - x.PointsReceived).Reverse().ToList();
-                bigTable.AddRange(sameRankTableSorted);
+                sameRankSubTable.Sort(new CrossGroupTeamComparer());
+                bigTable.AddRange(sameRankSubTable);
             }
 
             Console.WriteLine("\nPlasman od 1. do 9. mesta nakon grupne faze:");
+            Console.WriteLine($"\n\t\t\t|Pts| W | L | FOR | AGT | -/+");
+            Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
             for (int i = 0; i < bigTable.Count; i++)
             {
-                Console.WriteLine($"{i + 1}. {bigTable[i].Name}");
+                string preSpaces = Math.Abs(bigTable[i].PointsDifference).ToString().Length == 1 ? "  " : Math.Abs(bigTable[i].PointsDifference).ToString().Length == 2 ? " " : "";
+                char prefix = bigTable[i].PointsDifference < 0 ? '-' : '+';
+                string tabSeparator = bigTable[i].Name.Length > 16 ? "\t" : "\t\t";
+                
+                if (i == bigTable.Count - 1)
+                {
+                    Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
+                }
+
+                Console.WriteLine($"{i + 1}. {bigTable[i].Name}{tabSeparator}| {bigTable[i].Points} | {bigTable[i].Wins} | {bigTable[i].Losses} | {bigTable[i].PointsScored} | {bigTable[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(bigTable[i].PointsDifference)}");
             }
 
             //TODO: SimulateDraw()
@@ -325,23 +339,38 @@ namespace BasketballTournamentTask_cdbhnd
             }
 
             Console.WriteLine($"\t\t{team1Name} - {team2Name} ({team1Score}:{team2Score}){overtimeText}");
-            allGames.Add(new Game(team1, team2, team1Score, team2Score));
+
+            HeadToHeadStats team1H2H = new HeadToHeadStats();
+            team1.HeadToHead.Add(team2.ISOCode, team1H2H);
+
+            HeadToHeadStats team2H2H = new HeadToHeadStats();
+            team2.HeadToHead.Add(team1.ISOCode, team2H2H);
 
             team1.PointsScored += team1Score;
-            team2.PointsScored += team2Score;
-
             team1.PointsReceived += team2Score;
+            team1H2H.PointsScored = team1Score;
+            team1H2H.PointsReceived = team2Score;
+
+            team2.PointsScored += team2Score;
             team2.PointsReceived += team1Score;
+            team2H2H.PointsScored = team2Score;
+            team2H2H.PointsReceived = team1Score;
 
             if (team1Score > team2Score)
             {
                 team1.Wins++;
                 team2.Losses++;
+
+                team1H2H.Wins++;
+                team2H2H.Losses++;
             }
             else if (team2Score > team1Score)
             {
                 team2.Wins++;
                 team1.Losses++;
+
+                team2H2H.Wins++;
+                team1H2H.Losses++;
             }
 
             double team1Elo = team1.ELORating;
@@ -446,9 +475,74 @@ namespace BasketballTournamentTask_cdbhnd
             return randNormal;
         }
 
-        private static void SortTable(List<Team> teams)
+        private static Dictionary<string, int> SumRows(Dictionary<string, Dictionary<string, int>> dictionary)
         {
-            teams.OrderBy(t => t.Wins);
+            Dictionary<string, int> summedRows = new Dictionary<string, int>();
+
+            foreach (var outerItem in dictionary)
+            {
+                int sum = 0;
+
+                foreach (var innerItem in outerItem.Value)
+                {
+                    sum += innerItem.Value;
+                }
+
+                summedRows.Add(outerItem.Key, sum);
+            }
+
+            return summedRows;
+        }
+
+        static Dictionary<TKey, Dictionary<TSubKey, TValue>> DeepCopy<TKey, TSubKey, TValue>(Dictionary<TKey, Dictionary<TSubKey, TValue>> original)
+        {
+            var copy = new Dictionary<TKey, Dictionary<TSubKey, TValue>>();
+
+            foreach (var kvp in original)
+            {
+                // For each key-value pair in the outer dictionary, create a new inner dictionary
+                var innerCopy = new Dictionary<TSubKey, TValue>(kvp.Value);
+                copy[kvp.Key] = innerCopy;
+            }
+
+            return copy;
+        }
+
+        private static Dictionary<string, Dictionary<string, int>> GetSubDictionary(Dictionary<string, Dictionary<string, int>> dictionary, string[] keys, bool keepKeys = true)
+        {
+            var subDictionary = DeepCopy(dictionary);
+
+            foreach (var outerItem in subDictionary)
+            {
+                if (keys.Contains(outerItem.Key) && !keepKeys || !keys.Contains(outerItem.Key) && keepKeys)
+                {
+                    subDictionary.Remove(outerItem.Key);
+                    continue;
+                }
+
+                foreach (var innerItem in outerItem.Value)
+                {
+                    if (keys.Contains(innerItem.Key) && !keepKeys || !keys.Contains(innerItem.Key) && keepKeys)
+                    {
+                        outerItem.Value.Remove(innerItem.Key);
+                    }
+                }
+
+            }
+
+            return subDictionary;
+        }
+
+        private static List<Team> TeamCodesToTeams(List<string> teamCodesSorted)
+        {
+            List<Team> teams = new List<Team>();
+
+            foreach (var teamCode in teamCodesSorted)
+            {
+                teams.Add(allTeams.FirstOrDefault(x => x.Key == teamCode).Value);
+            }
+
+            return teams;
         }
     }
 }
