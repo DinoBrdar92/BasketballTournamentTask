@@ -76,6 +76,7 @@ namespace BasketballTournamentTask_cdbhnd
             SortedDictionary<string, List<Team>> groups = new();
 
             Console.WriteLine("\n\n                    - GROUPS -");
+
             foreach (var group in Dbc.GroupsDto)
             {
                 Console.WriteLine($"\nGrupa {group.Key}:\t\t|Pts| W | L | FOR | AGT | -/+");
@@ -141,6 +142,8 @@ namespace BasketballTournamentTask_cdbhnd
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
             }
 
+            Console.WriteLine("Pts - Bodovi\nW - Pobede\nL - Porazi\nFOR - Dati poeni\nAGT - Primljeni poeni\n-/+ - Koš razlika");
+
             List<Team> bigTable = new List<Team>();
 
             for (int i = 0; i < 3; i++)
@@ -201,7 +204,7 @@ namespace BasketballTournamentTask_cdbhnd
 
                 foreach (var team in hats[i])
                 {
-                    Console.WriteLine($"\t\t{team.Name} [{team.Group}]");
+                    Console.WriteLine($"\t\t[{team.Group}] {team.Name}");
                 }
             }
 
