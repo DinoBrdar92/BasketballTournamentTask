@@ -29,11 +29,11 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
             {
                 if (x.PointsDifference > y.PointsDifference)
                 {
-                    Debug.WriteLine($"{x.ISOCode} has a better points differential than {y.ISOCode} ({x.PointsDifference} to {y.PointsDifference} point diff) - {x.ISOCode} goes in front of {y.ISOCode}");
+                    Debug.WriteLine($"{x.ISOCode} has a better points differential than {y.ISOCode} ({(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} to {(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} point diff) - {x.ISOCode} goes in front of {y.ISOCode}");
                 }
                 else
                 {
-                    Debug.WriteLine($"{y.ISOCode} has a better points differential than {x.ISOCode} ({y.PointsDifference} to {x.PointsDifference} point diff) - {y.ISOCode} goes in front of {x.ISOCode}");
+                    Debug.WriteLine($"{y.ISOCode} has a better points differential than {x.ISOCode} ({(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} to {(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} point diff) - {y.ISOCode} goes in front of {x.ISOCode}");
                 }
                 return y.PointsDifference.CompareTo(x.PointsDifference);
             }

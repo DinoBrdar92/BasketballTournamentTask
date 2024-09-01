@@ -169,7 +169,7 @@ namespace BasketballTournamentTask_cdbhnd
                 sameRankSubTable.Sort(new CrossGroupTeamComparer());
                 bigTable.AddRange(sameRankSubTable);
             }
-            Console.WriteLine("\n\n                      - DRAW -");
+
             Console.WriteLine("\nPlasman od 1. do 9. mesta nakon grupne faze:");
             Console.WriteLine($"\n\t\t\t|Pts| W | L | FOR | AGT | -/+");
             Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
@@ -187,6 +187,7 @@ namespace BasketballTournamentTask_cdbhnd
                 Console.WriteLine($"{i + 1}. {bigTable[i].Name}{tabSeparator}| {bigTable[i].Points} | {bigTable[i].Wins} | {bigTable[i].Losses} | {bigTable[i].PointsScored} | {bigTable[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(bigTable[i].PointsDifference)}");
             }
 
+            Console.WriteLine("\n\n                      - DRAW -");
             //TODO: SimulateDraw()
 
             List<List<Team>> hats = new List<List<Team>>();
@@ -305,9 +306,13 @@ namespace BasketballTournamentTask_cdbhnd
             Team goldTeam = finalTeams.Item1;
 
             Console.WriteLine("\nMedalje:");
-            Console.WriteLine($"\t1. {goldTeam.Name} - GOLD");
-            Console.WriteLine($"\t2. {silverTeam.Name} - SILVER");
-            Console.WriteLine($"\t3. {bronzeTeam.Name} - BRONZE");
+            Console.WriteLine($"\t1. GOLD:\t{goldTeam.Name}");
+            Console.WriteLine($"\t2. SILVER:\t{silverTeam.Name}");
+            Console.WriteLine($"\t3. BRONZE:\t{bronzeTeam.Name}");
+
+            Console.WriteLine($"\n\n              {goldTeam.ISOCode}\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⡿⠿⠿⢿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣶⠀⢸⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠿⠀⠸⢿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀{silverTeam.ISOCode}⠀⠀⠀⢸⣿⣿⣿⣶⣶⣶⣾⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⣤⣤⣤⣤⣤⣤⣤⣤⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⣿⣿⣟⢉⣉⠉⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀{bronzeTeam.ISOCode}⠀⠀⠀⠀\r\n⠀⣿⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣶⣶⠀\r\n⠀⣿⣿⣟⠁⠐⠛⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⣉⡉⢹⣿⣿⠀\r\n⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⡀⢸⣿⣿⠀\r\n⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⣉⣁⣼⣿⣿⠀\r\n⠀⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠀");
+
+
 
         }
 

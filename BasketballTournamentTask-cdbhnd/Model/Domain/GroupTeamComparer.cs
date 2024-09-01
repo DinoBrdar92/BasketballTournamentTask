@@ -61,11 +61,11 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
                 {
                     if (h2hY.PointsDifference > h2hX.PointsDifference)
                     {
-                        Debug.WriteLine($"{y.ISOCode} leads in a {threeWayTieMsg}point difference against {x.ISOCode} ({h2hY.PointsDifference} to {h2hX.PointsDifference}) - {y.ISOCode} goes in front of {x.ISOCode}");
+                        Debug.WriteLine($"{y.ISOCode} has a better {threeWayTieMsg}point differential compared to {x.ISOCode} ({(h2hY.PointsDifference > 0 ? "+" : "")}{h2hY.PointsDifference} to {(h2hX.PointsDifference > 0 ? "+" : "")}{h2hX.PointsDifference}) - {y.ISOCode} goes in front of {x.ISOCode}");
                     }
                     else
                     {
-                        Debug.WriteLine($"{x.ISOCode} leads in a {threeWayTieMsg}point difference against {y.ISOCode} ({h2hX.PointsDifference} to {h2hY.PointsDifference}) - {x.ISOCode} goes in front of {y.ISOCode}");
+                        Debug.WriteLine($"{x.ISOCode} has a better {threeWayTieMsg}point differential compared to {y.ISOCode} ({(h2hX.PointsDifference > 0 ? "+" : "")}{h2hX.PointsDifference} to {(h2hY.PointsDifference > 0 ? "+" : "")}{h2hY.PointsDifference}) - {x.ISOCode} goes in front of {y.ISOCode}");
                     }
                     return h2hY.PointsDifference.CompareTo(h2hX.PointsDifference);
                 }
@@ -75,11 +75,11 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
                 {
                     if (h2hY.PointsScored > h2hX.PointsScored)
                     {
-                        Debug.WriteLine($"{y.ISOCode} leads in {threeWayTieMsg}points scored against {x.ISOCode} ({h2hY.PointsScored} to {h2hX.PointsScored}) - {y.ISOCode} goes in front of {x.ISOCode}");
+                        Debug.WriteLine($"{y.ISOCode} leads in {threeWayTieMsg}points scored compared to {x.ISOCode} ({h2hY.PointsScored} to {h2hX.PointsScored}) - {y.ISOCode} goes in front of {x.ISOCode}");
                     }
                     else
                     {
-                        Debug.WriteLine($"{x.ISOCode} leads in {threeWayTieMsg}points scored against {y.ISOCode} ({h2hX.PointsScored} to {h2hY.PointsScored}) - {y.ISOCode} goes in front of {y.ISOCode}");
+                        Debug.WriteLine($"{x.ISOCode} leads in {threeWayTieMsg}points scored compared to {y.ISOCode} ({h2hX.PointsScored} to {h2hY.PointsScored}) - {y.ISOCode} goes in front of {y.ISOCode}");
                     }
                     return h2hY.PointsScored.CompareTo(h2hX.PointsScored);
                 }
@@ -90,11 +90,11 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
             {
                 if (x.PointsDifference > y.PointsDifference)
                 {
-                    Debug.WriteLine($"{x.ISOCode} has better point differential than {y.ISOCode} ({x.PointsDifference} to {y.PointsDifference} point diff) - {x.ISOCode} goes in front of {y.ISOCode}");
+                    Debug.WriteLine($"{x.ISOCode} has better point differential than {y.ISOCode} ({(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} to {(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} point diff) - {x.ISOCode} goes in front of {y.ISOCode}");
                 }
                 else
                 {
-                    Debug.WriteLine($"{y.ISOCode} has better point differential than {x.ISOCode} ({y.PointsDifference} to {x.PointsDifference} point diff) - {y.ISOCode} goes in front of {x.ISOCode}");
+                    Debug.WriteLine($"{y.ISOCode} has better point differential than {x.ISOCode} ({(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} to {(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} point diff) - {y.ISOCode} goes in front of {x.ISOCode}");
                 }
                 return y.PointsDifference.CompareTo(x.PointsDifference);
             }
