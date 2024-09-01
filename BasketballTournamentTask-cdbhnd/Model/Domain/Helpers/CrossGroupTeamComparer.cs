@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BasketballTournamentTask_cdbhnd.Model.Domain
+namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
 {
     internal class CrossGroupTeamComparer : IComparer<GroupEntry>
     {

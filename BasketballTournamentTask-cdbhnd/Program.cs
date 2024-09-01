@@ -1,6 +1,7 @@
 ﻿using BasketballTournamentTask_cdbhnd.Database;
 using BasketballTournamentTask_cdbhnd.Model;
 using BasketballTournamentTask_cdbhnd.Model.Domain;
+using BasketballTournamentTask_cdbhnd.Model.Domain.Helpers;
 using BasketballTournamentTask_cdbhnd.Model.Entities;
 using System.Collections;
 using System.Collections.Generic;
@@ -18,10 +19,10 @@ namespace BasketballTournamentTask_cdbhnd
 
         static void Main(string[] args)
         {
+            //inicijalizacija iz baze (čitanje json fajlova i deserijalizacija u objekte)
             Dbc = new DbContext();
 
-            //TODO: AnalyzeTeams()
-
+            
             foreach (var groupDto in Dbc.GroupsDto)
             {
                 string groupLetter = groupDto.Key;
@@ -40,13 +41,14 @@ namespace BasketballTournamentTask_cdbhnd
 
             }
 
+            //računanje inicijalnog ELO ratinga za sve timove
             foreach (string teamCode in allTeams.Keys)
             {
-                ExhibitionGamesToElo(teamCode, 30);
+                ExhibitionGamesToElo(teamCode);
             }
 
-            //TODO: SimulateGroupStage()
 
+            //raspored u kojem kolu ko s kim igra
             Dictionary<string, List<(int, int)>> roundsSchedule = new Dictionary<string, List<(int, int)>>
             {
                 { "I kolo", [(0, 1),(2, 3)] },
@@ -57,11 +59,14 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine("  ***************************************************");
             Console.WriteLine(" *    OLYMPICS BASKETBALL TOURNAMENT SIMULATOR     *");
             Console.WriteLine("**************************************************");
-            Console.WriteLine("      .,::OOO::,.     .,ooOOOoo,.     .,::OOO::,.\r\n    .:'         `:. .8'         `8. .:'         `:.\r\n    :\"           \": 8\"           \"8 :\"           \":\r\n    :,        .,:::\"\"::,.     .,:o8OO::,.        ,:__  o\\\r\n     :,,    .:' ,:   8oo`:. .:'oo8   :,,`:.    ,,:  W    \\O\r\n      `^OOoo:\"O^'     `^88oo:\"8^'     `^O\":ooOO^'         |\\_\r\n            :,           ,: :,           ,:              /-\\\r\n             :,,       ,,:   :,,       ,,:               \\   \\\r\n              `^Oo,,,oO^'     `^OOoooOO^'");
+
+            if (!args.Contains("-v"))
+                Console.WriteLine("      .,::OOO::,.     .,ooOOOoo,.     .,::OOO::,.\r\n    .:'         `:. .8'         `8. .:'         `:.\r\n    :\"           \": 8\"           \"8 :\"           \":\r\n    :,        .,:::\"\"::,.     .,:o8OO::,.        ,:__  o\\\r\n     :,,    .:' ,:   8oo`:. .:'oo8   :,,`:.    ,,:  W    \\O\r\n      `^OOoo:\"O^'     `^88oo:\"8^'     `^O\":ooOO^'         |\\_\r\n            :,           ,: :,           ,:              /-\\\r\n             :,,       ,,:   :,,       ,,:               \\   \\\r\n              `^Oo,,,oO^'     `^OOoooOO^'");
+
             Console.WriteLine("\n");
             Console.WriteLine("                   - GROUP STAGE -");
 
-            // 
+            //simulacija mečeva u grupi
             foreach (var round in roundsSchedule)
             {
                 Console.WriteLine($"{round.Key}:");
@@ -84,16 +89,21 @@ namespace BasketballTournamentTask_cdbhnd
                 Console.WriteLine();
             }
 
+
+            
             SortedDictionary<string, List<GroupEntry>> allGroupsList = new();
 
             Console.WriteLine("\n\n                    - GROUPS -");
 
+            //ispisivanje tabela po odigravanju svih mečeva
             foreach (var group in allGroups)
             {
                 Console.WriteLine($"\nGrupa {group.Key}:\t\t|Pts| W | L | FOR | AGT | -/+");
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
 
                 List<GroupEntry> groupList = allGroups[group.Key].Values.ToList();
+                
+                //proveriti da li u grupi postoji situacija gde 3 tima imaju isti broj bodova
                 List<IGrouping<int, GroupEntry>> threeTeamTie = groupList.GroupBy(x => x.Points).Where(x => x.Count() > 2).ToList();
 
                 if (threeTeamTie.Count == 1 && (threeTeamTie.FirstOrDefault()).Count() == 3)
@@ -133,12 +143,12 @@ namespace BasketballTournamentTask_cdbhnd
 
                 }
 
-
+                //sortiranje
                 groupList.Sort(new GroupTeamComparer());
 
                 allGroupsList.Add(group.Key, groupList);
                 
-
+                //ispis tabele na konzolu
                 for (int i = 0; i < groupList.Count; i++)
                 {
                     string preSpaces = Math.Abs(groupList[i].PointsDifference).ToString().Length == 1 ? "  " : Math.Abs(groupList[i].PointsDifference).ToString().Length == 2 ? " " : "";
@@ -152,6 +162,8 @@ namespace BasketballTournamentTask_cdbhnd
 
             Console.WriteLine("Pts - Bodovi\nW - Pobede\nL - Porazi\nFOR - Dati poeni\nAGT - Primljeni poeni\n-/+ - Koš razlika");
 
+
+            //kreiranje plasmana od 1. do 9. mesta za šešire
             List<GroupEntry> bigTable = new List<GroupEntry>();
 
             for (int i = 0; i < 3; i++)
@@ -176,6 +188,7 @@ namespace BasketballTournamentTask_cdbhnd
                 char prefix = bigTable[i].PointsDifference < 0 ? '-' : '+';
                 string tabSeparator = bigTable[i].Team.Name.Length > 16 ? "\t" : "\t\t";
                 
+                //odvojiti 9. na tabeli da se naglasi da je eliminisan
                 if (i == bigTable.Count - 1)
                 {
                     Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
@@ -185,13 +198,13 @@ namespace BasketballTournamentTask_cdbhnd
             }
 
             Console.WriteLine("\n\n                      - DRAW -");
-            //TODO: SimulateDraw()
+
+            //simulacija žreba
 
             List<List<GroupEntry>> hats = new List<List<GroupEntry>>();
 
             for (int i = 0; i < bigTable.Count - 1; i++)
             {
-
                 int hatNo = i / 2;
                 int placeInHat = i % 2;
                 
@@ -260,11 +273,13 @@ namespace BasketballTournamentTask_cdbhnd
                     Game game2 = new Game(top2, bottom2);
                     potentialPairs.Add(game2);
 
+                    //ponovi ako se desi da je izvučen par gde su obe ekipe došle iz iste grupe
                 } while (top1GroupLetter == bottom1GroupLetter || top2GroupLetter == bottom2GroupLetter);
 
                 quarterfinalGames.AddRange(potentialPairs);
             }
 
+            //štampaj izvučene parove
             Console.WriteLine("\nIzvučeni parovi:");
             for (int i = 0; i < quarterfinalGames.Count; i++)
             {
@@ -279,7 +294,7 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine("\n\n              - KNOCKOUT STAGE -");
 
 
-            //TODO: SimulateKnockoutStage()
+            //simulacija mečeva nokaut faze (četvrtfinale, polufinale, meč za 3. mesto, finale)
             List<Game> semifinalGames = new List<Game>();
 
             Console.WriteLine("\nČetvrtfinale:");
@@ -317,21 +332,29 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine($"\t2. SILVER:\t{silverTeam.Name}");
             Console.WriteLine($"\t3. BRONZE:\t{bronzeTeam.Name}");
 
-            Console.WriteLine($"\n\n              {goldTeam.ISOCode}\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⡿⠿⠿⢿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣶⠀⢸⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠿⠀⠸⢿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀{silverTeam.ISOCode}⠀⠀⠀⢸⣿⣿⣿⣶⣶⣶⣾⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⣤⣤⣤⣤⣤⣤⣤⣤⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⣿⣿⣟⢉⣉⠉⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀{bronzeTeam.ISOCode}⠀⠀⠀⠀\r\n⠀⣿⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣶⣶⠀\r\n⠀⣿⣿⣟⠁⠐⠛⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⣉⡉⢹⣿⣿⠀\r\n⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⡀⢸⣿⣿⠀\r\n⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⣉⣁⣼⣿⣿⠀\r\n⠀⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠀");
-
-
+            if (!args.Contains("-v"))
+                Console.WriteLine($"\n\n              {goldTeam.ISOCode}\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⡿⠿⠿⢿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⣶⠀⢸⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢸⣿⣿⣿⠿⠀⠸⢿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⠀⠀⠀{silverTeam.ISOCode}⠀⠀⠀⢸⣿⣿⣿⣶⣶⣶⣾⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⣤⣤⣤⣤⣤⣤⣤⣤⣤⣾⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀⠀⠀⠀⠀⠀⠀⠀\r\n⠀⣿⣿⣟⢉⣉⠉⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⡇⠀⠀{bronzeTeam.ISOCode}⠀⠀⠀⠀\r\n⠀⣿⣿⣿⣿⠟⢀⣼⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣷⣶⣶⣶⣶⣶⣶⣶⣶⠀\r\n⠀⣿⣿⣟⠁⠐⠛⢻⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⣉⡉⢹⣿⣿⠀\r\n⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⡀⢸⣿⣿⠀\r\n⠀⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣉⣉⣁⣼⣿⣿⠀\r\n⠀⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠛⠀");
 
         }
 
 
-
+        /// <summary>
+        /// Aproksimira ELO rejting na osnovu pozicije na FIBA rang listi
+        /// </summary>
+        /// <param name="fibaRanking">pozicija reprezentacije na FIBA rang listi</param>
+        /// <returns>ELO rejting</returns>
         private static double FibaRankingToElo(int fibaRanking)
         {
             return 4200 / (fibaRanking + 4) + 950;
         }
 
-        private static void ExhibitionGamesToElo(string teamCode, int adjustment)
+        /// <summary>
+        /// Ažurira ELO rejting tima na osnovu odigranih prijateljskih mečeva
+        /// </summary>
+        /// <param name="teamCode">ISO oznaka tima</param>
+        private static void ExhibitionGamesToElo(string teamCode)
         {
+            int adjustment = 30;
             Team team = allTeams[teamCode];
             double elo = FibaRankingToElo(team.FIBARanking);
             List<GameDto> exhibitionsByTeam = Dbc.ExhibitionsDto.GetValueOrDefault(team.ISOCode) ?? new();
@@ -352,6 +375,11 @@ namespace BasketballTournamentTask_cdbhnd
             team.ELORating = elo;
         }
 
+        /// <summary>
+        /// Simulira meč grupne faze između 2 ekipe
+        /// </summary>
+        /// <param name="team1">Prvi tim</param>
+        /// <param name="team2">Drugi tim</param>
         private static void GroupStageGame(GroupEntry team1, GroupEntry team2)
         {
             int overtimeCounter = 0;
@@ -421,26 +449,19 @@ namespace BasketballTournamentTask_cdbhnd
                 team1H2H.Losses++;
             }
 
-            double team1Elo = team1.Team.ELORating;
-            double team2Elo = team2.Team.ELORating;
-
-            double team1expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team2Elo - team1Elo) / 400.0));
-            double team2expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team1Elo - team2Elo) / 400.0));
-
-            int team1ActualOutcome = (team1Score > team2Score) ? 1 : 0;
-            int team2ActualOutcome = (team2Score > team1Score) ? 1 : 0;
-
-            int adjustment = 40;
-
-            team1Elo = team1Elo + adjustment * (team1ActualOutcome - team1expectedOutcome);
-            team2Elo = team2Elo + adjustment * (team2ActualOutcome - team2expectedOutcome);
-
-            team1.Team.ELORating = team1Elo;
-            team2.Team.ELORating = team2Elo;
+            CalculateEloRating(team1.Team, team2.Team, team1Score, team2Score, 25);
 
         }
 
+        
 
+        /// <summary>
+        /// Simulira mečeve nokaut faze. Glavna razlika u odnosu na simuliranje mečeva grupne faze je što se 
+        /// ne popunjavaju GroupEntry podaci, i parametri su namešteni tako da timovi postižu manje koševa 
+        /// s obzirom da se u nokaut fazi igra čvršća odbrana.
+        /// </summary>
+        /// <param name="game">meč koji sadrži dva tima</param>
+        /// <returns>Torka u kojoj je prvi član (Item1) pobednik, a drugi član (Item2) poraženi iz duela</returns>
         private static (Team, Team) KnockoutStageGame(Game game)
         {
             Team team1 = game.Team1;
@@ -483,22 +504,10 @@ namespace BasketballTournamentTask_cdbhnd
 
             Console.WriteLine($"\t{team1Name} - {team2Name} ({team1Score}:{team2Score}){overtimeText}");
 
-            double team1Elo = team1.ELORating;
-            double team2Elo = team2.ELORating;
 
-            double team1expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team2Elo - team1Elo) / 400.0));
-            double team2expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team1Elo - team2Elo) / 400.0));
-
-            int team1ActualOutcome = (team1Score > team2Score) ? 1 : 0;
-            int team2ActualOutcome = (team2Score > team1Score) ? 1 : 0;
-
-            int adjustment = 20;
-
-            team1Elo = team1Elo + adjustment * (team1ActualOutcome - team1expectedOutcome);
-            team2Elo = team2Elo + adjustment * (team2ActualOutcome - team2expectedOutcome);
-
-            team1.ELORating = team1Elo;
-            team2.ELORating = team2Elo;
+            //računanje ELO ratinga
+            CalculateEloRating(team1, team2, team1Score, team2Score, 15);
+            
 
             if (team1Score > team2Score)
             {
@@ -511,7 +520,47 @@ namespace BasketballTournamentTask_cdbhnd
 
         }
 
+        /// <summary>
+        /// Računa ELO rejting na osnovu odigranog meča.
+        /// </summary>
+        /// <param name="team1"></param>
+        /// <param name="team2"></param>
+        /// <param name="team1Score"></param>
+        /// <param name="team2Score"></param>
+        /// <param name="adjustment"></param>
+        private static void CalculateEloRating(Team team1, Team team2, int team1Score, int team2Score, int adjustment)
+        {
+            double team1Elo = team1.ELORating;
+            double team2Elo = team2.ELORating;
 
+            double team1expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team2Elo - team1Elo) / 400.0));
+            double team2expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team1Elo - team2Elo) / 400.0));
+
+            int team1ActualOutcome = (team1Score > team2Score) ? 1 : 0;
+            int team2ActualOutcome = (team2Score > team1Score) ? 1 : 0;
+
+            team1Elo = team1Elo + adjustment * (team1ActualOutcome - team1expectedOutcome);
+            team2Elo = team2Elo + adjustment * (team2ActualOutcome - team2expectedOutcome);
+
+            team1.ELORating = team1Elo;
+            team2.ELORating = team2Elo;
+        }
+
+        private static void CalculateEloRating(Game game, int adjustment)
+        {
+            if (game.Team1Score == null || game.Team2Score == null)
+                throw new ArgumentNullException();
+
+            CalculateEloRating(game.Team1, game.Team2, game.Team1Score.Value, game.Team2Score.Value, adjustment);
+        }
+
+
+        /// <summary>
+        /// Računa nasumična vrednost na osnovu normalne distribucije
+        /// </summary>
+        /// <param name="mean">matematičko očekivanje</param>
+        /// <param name="stdDev">standardna devijansa</param>
+        /// <returns>nasumične vrednosti na osnovu normalne distribucije</returns>
         private static double RandomFromNormalDistribution(double mean, double stdDev)
         {
             Random rand = new Random();

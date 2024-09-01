@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BasketballTournamentTask_cdbhnd.Model.Domain
+namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
 {
     public class GroupTeamComparer : IComparer<GroupEntry>
     {
@@ -47,16 +47,16 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
 
                     return h2hY.Wins.CompareTo(h2hX.Wins);
                 }
-                
+
 
 
                 // 2. Compare H2H Points Difference
                 if (h2hX.PointsDifference != h2hY.PointsDifference)
                 {
-                    Func<GroupEntry, HeadToHeadStats, GroupEntry, HeadToHeadStats, string> ptsDiffMsg = (t1, h2hT1, t2, h2hT2) => { return $"{t2.Team.ISOCode} has a better {threeWayTieMsg}point differential compared to {t1.Team.ISOCode} ({(h2hT2.PointsDifference > 0 ? "+" : "")}{h2hT2.PointsDifference} to {(h2hT1.PointsDifference > 0 ? "+" : "")}{h2hT1.PointsDifference})";  };
-                    
+                    Func<GroupEntry, HeadToHeadStats, GroupEntry, HeadToHeadStats, string> ptsDiffMsg = (t1, h2hT1, t2, h2hT2) => { return $"{t2.Team.ISOCode} has a better {threeWayTieMsg}point differential compared to {t1.Team.ISOCode} ({(h2hT2.PointsDifference > 0 ? "+" : "")}{h2hT2.PointsDifference} to {(h2hT1.PointsDifference > 0 ? "+" : "")}{h2hT1.PointsDifference})"; };
+
                     Debug.WriteLine(h2hY.PointsDifference > h2hX.PointsDifference ? ptsDiffMsg(x, h2hX, y, h2hY) : ptsDiffMsg(y, h2hY, x, h2hX));
-                    
+
                     return h2hY.PointsDifference.CompareTo(h2hX.PointsDifference);
                 }
 

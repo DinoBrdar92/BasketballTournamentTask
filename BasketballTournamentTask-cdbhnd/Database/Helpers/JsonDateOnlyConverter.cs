@@ -2,7 +2,7 @@
 using System.Text.Json.Serialization;
 using System.Text.Json;
 
-namespace BasketballTournamentTask_cdbhnd.Database
+namespace BasketballTournamentTask_cdbhnd.Database.Helpers
 {
     public class JsonDateOnlyConverter : JsonConverter<DateOnly>
     {

@@ -25,4 +25,13 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
             Team = team;
         }
     }
+
+    public class HeadToHeadStats
+    {
+        public int Wins { get; set; }
+        public int Losses { get; set; }
+        public int PointsScored { get; set; }
+        public int PointsReceived { get; set; }
+        public int PointsDifference => PointsScored - PointsReceived;
+    }
 }

@@ -7,7 +7,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
-namespace BasketballTournamentTask_cdbhnd.Database
+namespace BasketballTournamentTask_cdbhnd.Database.Helpers
 {
     internal class DbIO
     {
@@ -24,7 +24,7 @@ namespace BasketballTournamentTask_cdbhnd.Database
                 writer.WriteLine(jsonObj);
             }
         }
-        
+
         public static Dictionary<TKey, TValue>? DeserializeFromJsonFile<TKey, TValue>(string filePath) where TKey : notnull
         {
             JsonSerializerOptions options = new JsonSerializerOptions();
@@ -56,6 +56,6 @@ namespace BasketballTournamentTask_cdbhnd.Database
 
             return objects;
         }
-        
+
     }
 }
