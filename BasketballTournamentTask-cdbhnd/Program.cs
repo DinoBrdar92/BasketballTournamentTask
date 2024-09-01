@@ -14,6 +14,8 @@ namespace BasketballTournamentTask_cdbhnd
 
         private static Dictionary<string, Team> allTeams = new();
 
+        private static Dictionary<string, Dictionary<string, GroupEntry>> allGroups = new();
+
         static void Main(string[] args)
         {
             Dbc = new DbContext();
@@ -22,11 +24,20 @@ namespace BasketballTournamentTask_cdbhnd
 
             foreach (var groupDto in Dbc.GroupsDto)
             {
-                foreach(TeamDto teamDto in groupDto.Value)
+                string groupLetter = groupDto.Key;
+
+                allGroups.Add(groupLetter, new Dictionary<string, GroupEntry>());
+
+                foreach (TeamDto teamDto in groupDto.Value)
                 {
-                    Team team = new(teamDto.ISOCode, teamDto.Team, teamDto.FIBARanking, groupDto.Key);
+                    Team team = new(teamDto.ISOCode, teamDto.Team, teamDto.FIBARanking);
+
                     allTeams.Add(teamDto.ISOCode, team);
+
+                    allGroups[groupLetter].Add(team.Name, new GroupEntry(groupLetter, team));
                 }
+
+
             }
 
             foreach (string teamCode in allTeams.Keys)
@@ -36,7 +47,7 @@ namespace BasketballTournamentTask_cdbhnd
 
             //TODO: SimulateGroupStage()
 
-            SortedDictionary<string, List<(int, int)>> groupStages = new SortedDictionary<string, List<(int, int)>>
+            Dictionary<string, List<(int, int)>> roundsSchedule = new Dictionary<string, List<(int, int)>>
             {
                 { "I kolo", [(0, 1),(2, 3)] },
                 { "II kolo", [(1, 2),(3, 0)] },
@@ -44,81 +55,78 @@ namespace BasketballTournamentTask_cdbhnd
             };
 
             Console.WriteLine("  ***************************************************");
-            Console.WriteLine(" * OLYMPICS 2024 - BASKETBALL TOURNAMENT SIMULATOR *");
+            Console.WriteLine(" *    OLYMPICS BASKETBALL TOURNAMENT SIMULATOR     *");
             Console.WriteLine("**************************************************");
             Console.WriteLine("      .,::OOO::,.     .,ooOOOoo,.     .,::OOO::,.\r\n    .:'         `:. .8'         `8. .:'         `:.\r\n    :\"           \": 8\"           \"8 :\"           \":\r\n    :,        .,:::\"\"::,.     .,:o8OO::,.        ,:__  o\\\r\n     :,,    .:' ,:   8oo`:. .:'oo8   :,,`:.    ,,:  W    \\O\r\n      `^OOoo:\"O^'     `^88oo:\"8^'     `^O\":ooOO^'         |\\_\r\n            :,           ,: :,           ,:              /-\\\r\n             :,,       ,,:   :,,       ,,:               \\   \\\r\n              `^Oo,,,oO^'     `^OOoooOO^'");
             Console.WriteLine("\n");
             Console.WriteLine("                   - GROUP STAGE -");
 
-            foreach (var groupStage in groupStages)
+            // 
+            foreach (var round in roundsSchedule)
             {
-                Console.WriteLine($"{groupStage.Key}:");
+                Console.WriteLine($"{round.Key}:");
 
-                foreach (var group in Dbc.GroupsDto)
+                foreach (var group in allGroups)
                 {
-                    Console.WriteLine($"\tGrupa {group.Key}:");
+                    string groupLetter = group.Key;
 
-                    foreach ((int, int) pair in groupStage.Value)
+                    Console.WriteLine($"\tGrupa {groupLetter}:");
+
+                    foreach ((int, int) pair in round.Value)
                     {
-                        string team1Code = group.Value[pair.Item1].ISOCode;
-                        string team2Code = group.Value[pair.Item2].ISOCode;
+                        GroupEntry ge1 = group.Value.ElementAt(pair.Item1).Value;
+                        GroupEntry ge2 = group.Value.ElementAt(pair.Item2).Value;
 
-                        Team team1 = allTeams[team1Code];
-                        Team team2 = allTeams[team2Code];
-
-                        GroupStageGame(team1, team2);
+                        GroupStageGame(ge1, ge2);
 
                     }
                 }
                 Console.WriteLine();
             }
 
-            SortedDictionary<string, List<Team>> groups = new();
+            SortedDictionary<string, List<GroupEntry>> allGroupsList = new();
 
             Console.WriteLine("\n\n                    - GROUPS -");
 
-            foreach (var group in Dbc.GroupsDto)
+            foreach (var group in allGroups)
             {
                 Console.WriteLine($"\nGrupa {group.Key}:\t\t|Pts| W | L | FOR | AGT | -/+");
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
 
-                string[] teamCodesInGroup = allTeams.Values.Where(p => p.Group == group.Key).Select(x => x.ISOCode).ToArray();
-                List<Team> teamsInGroup = allTeams.Values.Where(p => p.Group == group.Key).ToList();
-                var threeTeamTie = teamsInGroup.GroupBy(x => x.Points).Where(x => x.Count() > 2).ToList();
+                List<GroupEntry> groupList = allGroups[group.Key].Values.ToList();
+                List<IGrouping<int, GroupEntry>> threeTeamTie = groupList.GroupBy(x => x.Points).Where(x => x.Count() > 2).ToList();
 
                 if (threeTeamTie.Count == 1 && (threeTeamTie.FirstOrDefault()).Count() == 3)
                 {
                     threeTeamTie.FirstOrDefault().All(x => x.IsInThreeTeamTie = true);
 
-                    var threeTeamTieList = teamsInGroup.Where(x => x.Points == threeTeamTie.FirstOrDefault().FirstOrDefault().Points).ToList();
+                    int threeTeamTiePointsAmount = threeTeamTie.FirstOrDefault().FirstOrDefault().Points;
 
-                    string[] threeTeamTieNameCodes = new string[3];
+                    List<GroupEntry> tttMembersList = groupList.Where(x => x.Points == threeTeamTie.FirstOrDefault().FirstOrDefault().Points).ToList();
 
-                    for (int i = 0; i < 3; i++)
-                    {
-                        threeTeamTieNameCodes[i] = teamsInGroup.Where(x => x.Points == threeTeamTie.FirstOrDefault().FirstOrDefault().Points).ToList()[i].ISOCode;
-                    }
+                    string[] tttNameCodes = tttMembersList.Select(x => x.Team.ISOCode).ToArray();
 
-                    foreach (Team team in threeTeamTieList)
+
+                    foreach (GroupEntry tttMember in tttMembersList)
                     {
                         //KeyValuePair<string, HeadToHeadStats> otherTwo = new KeyValuePair<string, HeadToHeadStats>(team.ISOCode, new HeadToHeadStats());
-                        team.HeadToHead.Add("otherTwo", new HeadToHeadStats());
+                        tttMember.HeadToHead.Add("otherTwo", new HeadToHeadStats());
 
-                        foreach (string nameCode in threeTeamTieNameCodes)
+                        foreach (string nameCode in tttNameCodes)
                         {
                             HeadToHeadStats h2hWithOneOfOtherTeams;
 
-                            if (team.ISOCode == nameCode)
+                            if (tttMember.Team.ISOCode == nameCode)
                             {
                                 continue;
                             }
 
-                            h2hWithOneOfOtherTeams = team.HeadToHead[nameCode];
+                            h2hWithOneOfOtherTeams = tttMember.HeadToHead[nameCode];
 
-                            team.HeadToHead["otherTwo"].Wins += h2hWithOneOfOtherTeams.Wins;
-                            team.HeadToHead["otherTwo"].Losses += h2hWithOneOfOtherTeams.Losses;
-                            team.HeadToHead["otherTwo"].PointsScored += h2hWithOneOfOtherTeams.PointsScored;
-                            team.HeadToHead["otherTwo"].PointsReceived += h2hWithOneOfOtherTeams.PointsReceived;
+                            tttMember.HeadToHead["otherTwo"].Wins += h2hWithOneOfOtherTeams.Wins;
+                            tttMember.HeadToHead["otherTwo"].Losses += h2hWithOneOfOtherTeams.Losses;
+                            tttMember.HeadToHead["otherTwo"].PointsScored += h2hWithOneOfOtherTeams.PointsScored;
+                            tttMember.HeadToHead["otherTwo"].PointsReceived += h2hWithOneOfOtherTeams.PointsReceived;
 
                         }
                     }
@@ -126,31 +134,31 @@ namespace BasketballTournamentTask_cdbhnd
                 }
 
 
-                teamsInGroup.Sort(new GroupTeamComparer());
+                groupList.Sort(new GroupTeamComparer());
 
-                groups.Add(group.Key, teamsInGroup);
+                allGroupsList.Add(group.Key, groupList);
                 
 
-                for (int i = 0; i < teamsInGroup.Count; i++)
+                for (int i = 0; i < groupList.Count; i++)
                 {
-                    string preSpaces = Math.Abs(teamsInGroup[i].PointsDifference).ToString().Length == 1 ? "  " : Math.Abs(teamsInGroup[i].PointsDifference).ToString().Length == 2 ? " " : "";
-                    char prefix = teamsInGroup[i].PointsDifference < 0 ? '-' : '+';
-                    string tabSeparator = teamsInGroup[i].Name.Length > 16 ? "\t" : "\t\t";
+                    string preSpaces = Math.Abs(groupList[i].PointsDifference).ToString().Length == 1 ? "  " : Math.Abs(groupList[i].PointsDifference).ToString().Length == 2 ? " " : "";
+                    char prefix = groupList[i].PointsDifference < 0 ? '-' : '+';
+                    string tabSeparator = groupList[i].Team.Name.Length > 16 ? "\t" : "\t\t";
 
-                    Console.WriteLine($"{i + 1}. {teamsInGroup[i].Name}{tabSeparator}| {teamsInGroup[i].Points} | {teamsInGroup[i].Wins} | {teamsInGroup[i].Losses} | {teamsInGroup[i].PointsScored} | {teamsInGroup[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(teamsInGroup[i].PointsDifference)}");
+                    Console.WriteLine($"{i + 1}. {groupList[i].Team.Name}{tabSeparator}| {groupList[i].Points} | {groupList[i].Wins} | {groupList[i].Losses} | {groupList[i].PointsScored} | {groupList[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(groupList[i].PointsDifference)}");
                 }
                 Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
             }
 
             Console.WriteLine("Pts - Bodovi\nW - Pobede\nL - Porazi\nFOR - Dati poeni\nAGT - Primljeni poeni\n-/+ - Koš razlika");
 
-            List<Team> bigTable = new List<Team>();
+            List<GroupEntry> bigTable = new List<GroupEntry>();
 
             for (int i = 0; i < 3; i++)
             {
-                List<Team> sameRankSubTable = new List<Team>();
+                List<GroupEntry> sameRankSubTable = new List<GroupEntry>();
 
-                foreach (var group in groups.Values)
+                foreach (List<GroupEntry> group in allGroupsList.Values)
                 {
                     sameRankSubTable.Add(group[i]);
                 }
@@ -166,20 +174,20 @@ namespace BasketballTournamentTask_cdbhnd
             {
                 string preSpaces = Math.Abs(bigTable[i].PointsDifference).ToString().Length == 1 ? "  " : Math.Abs(bigTable[i].PointsDifference).ToString().Length == 2 ? " " : "";
                 char prefix = bigTable[i].PointsDifference < 0 ? '-' : '+';
-                string tabSeparator = bigTable[i].Name.Length > 16 ? "\t" : "\t\t";
+                string tabSeparator = bigTable[i].Team.Name.Length > 16 ? "\t" : "\t\t";
                 
                 if (i == bigTable.Count - 1)
                 {
                     Console.WriteLine("------------------------+---+---+---+-----+-----+-----");
                 }
 
-                Console.WriteLine($"{i + 1}. {bigTable[i].Name}{tabSeparator}| {bigTable[i].Points} | {bigTable[i].Wins} | {bigTable[i].Losses} | {bigTable[i].PointsScored} | {bigTable[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(bigTable[i].PointsDifference)}");
+                Console.WriteLine($"{i + 1}. {bigTable[i].Team.Name}{tabSeparator}| {bigTable[i].Points} | {bigTable[i].Wins} | {bigTable[i].Losses} | {bigTable[i].PointsScored} | {bigTable[i].PointsReceived} | {preSpaces}{prefix}{Math.Abs(bigTable[i].PointsDifference)}");
             }
 
             Console.WriteLine("\n\n                      - DRAW -");
             //TODO: SimulateDraw()
 
-            List<List<Team>> hats = new List<List<Team>>();
+            List<List<GroupEntry>> hats = new List<List<GroupEntry>>();
 
             for (int i = 0; i < bigTable.Count - 1; i++)
             {
@@ -189,7 +197,7 @@ namespace BasketballTournamentTask_cdbhnd
                 
                 if (placeInHat == 0)
                 {
-                    hats.Add(new List<Team>());
+                    hats.Add(new List<GroupEntry>());
                 }
 
                 hats[hatNo].Add(bigTable[i]);
@@ -204,7 +212,7 @@ namespace BasketballTournamentTask_cdbhnd
 
                 foreach (var team in hats[i])
                 {
-                    Console.WriteLine($"\t\t[{team.Group}] {team.Name}");
+                    Console.WriteLine($"\t\t[{team.Group}] {team.Team.Name}");
                 }
             }
 
@@ -212,15 +220,17 @@ namespace BasketballTournamentTask_cdbhnd
 
             for (int i = 0; i < hats.Count / 2; i++)
             {
-                List<Team> topHat;
-                List<Team> bottomHat;
+                List<GroupEntry> topHat;
+                List<GroupEntry> bottomHat;
 
                 List<Game> potentialPairs;
 
+                string top1GroupLetter, bottom1GroupLetter, top2GroupLetter, bottom2GroupLetter;
+
                 do
                 {
-                    topHat = new List<Team>(hats[i]);
-                    bottomHat = new List<Team>(hats[hats.Count - i - 1]);
+                    topHat = new List<GroupEntry>(hats[i]);
+                    bottomHat = new List<GroupEntry>(hats[hats.Count - i - 1]);
                     
                     potentialPairs = new List<Game>();
                     
@@ -229,20 +239,28 @@ namespace BasketballTournamentTask_cdbhnd
                     int randomIndexTop = rand.Next(0, 2);
                     int randomIndexBottom = rand.Next(0, 2);
 
-                    Team top1 = topHat[randomIndexTop];
-                    Team bottom1 = bottomHat[randomIndexBottom];
+                    Team top1 = topHat[randomIndexTop].Team;
+                    top1GroupLetter = topHat[randomIndexTop].Group;
+
+                    Team bottom1 = bottomHat[randomIndexBottom].Team;
+                    bottom1GroupLetter = bottomHat[randomIndexBottom].Group;
+
                     Game game1 = new Game(top1, bottom1);
                     potentialPairs.Add(game1);
 
                     topHat.RemoveAt(randomIndexTop);
                     bottomHat.RemoveAt(randomIndexBottom);
 
-                    Team top2 = topHat[0];
-                    Team bottom2 = bottomHat[0];
+                    Team top2 = topHat[0].Team;
+                    top2GroupLetter = topHat[0].Group;
+
+                    Team bottom2 = bottomHat[0].Team;
+                    bottom2GroupLetter = bottomHat[0].Group;
+
                     Game game2 = new Game(top2, bottom2);
                     potentialPairs.Add(game2);
 
-                } while (potentialPairs[0].Team1.Group == potentialPairs[0].Team2.Group || potentialPairs[1].Team1.Group == potentialPairs[1].Team2.Group);
+                } while (top1GroupLetter == bottom1GroupLetter || top2GroupLetter == bottom2GroupLetter);
 
                 quarterfinalGames.AddRange(potentialPairs);
             }
@@ -334,23 +352,23 @@ namespace BasketballTournamentTask_cdbhnd
             team.ELORating = elo;
         }
 
-        private static void GroupStageGame(Team team1, Team team2)
+        private static void GroupStageGame(GroupEntry team1, GroupEntry team2)
         {
             int overtimeCounter = 0;
             string overtimeText = "";
 
-            string team1Name = team1.Name;
-            string team2Name = team2.Name;
+            string team1Name = team1.Team.Name;
+            string team2Name = team2.Team.Name;
 
             Func<double, double> Formula = (double eloRating) => { return eloRating / 80 + 25; };
 
-            int team1Score = (int)(Math.Round(Formula(team1.ELORating) * RandomFromNormalDistribution(2.0, 0.15)));
-            int team2Score = (int)(Math.Round(Formula(team2.ELORating) * RandomFromNormalDistribution(2.0, 0.15)));
+            int team1Score = (int)(Math.Round(Formula(team1.Team.ELORating) * RandomFromNormalDistribution(2.0, 0.15)));
+            int team2Score = (int)(Math.Round(Formula(team2.Team.ELORating) * RandomFromNormalDistribution(2.0, 0.15)));
 
             while (team1Score == team2Score)
             {
-                team1Score += (int)(Math.Round(Formula(team1.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35)));
-                team2Score += (int)(Math.Round(Formula(team2.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35)));
+                team1Score += (int)(Math.Round(Formula(team1.Team.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35)));
+                team2Score += (int)(Math.Round(Formula(team2.Team.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35)));
                 overtimeCounter++;
             }
 
@@ -373,8 +391,8 @@ namespace BasketballTournamentTask_cdbhnd
             HeadToHeadStats team1H2H = new HeadToHeadStats();
             HeadToHeadStats team2H2H = new HeadToHeadStats();
 
-            team1.HeadToHead.Add(team2.ISOCode, team1H2H);
-            team2.HeadToHead.Add(team1.ISOCode, team2H2H);
+            team1.HeadToHead.Add(team2.Team.ISOCode, team1H2H);
+            team2.HeadToHead.Add(team1.Team.ISOCode, team2H2H);
 
             team1.PointsScored += team1Score;
             team1.PointsReceived += team2Score;
@@ -403,8 +421,8 @@ namespace BasketballTournamentTask_cdbhnd
                 team1H2H.Losses++;
             }
 
-            double team1Elo = team1.ELORating;
-            double team2Elo = team2.ELORating;
+            double team1Elo = team1.Team.ELORating;
+            double team2Elo = team2.Team.ELORating;
 
             double team1expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team2Elo - team1Elo) / 400.0));
             double team2expectedOutcome = 1.0 / (1.0 + Math.Pow(10.0, (team1Elo - team2Elo) / 400.0));
@@ -417,8 +435,8 @@ namespace BasketballTournamentTask_cdbhnd
             team1Elo = team1Elo + adjustment * (team1ActualOutcome - team1expectedOutcome);
             team2Elo = team2Elo + adjustment * (team2ActualOutcome - team2expectedOutcome);
 
-            team1.ELORating = team1Elo;
-            team2.ELORating = team2Elo;
+            team1.Team.ELORating = team1Elo;
+            team2.Team.ELORating = team2Elo;
 
         }
 
@@ -500,7 +518,7 @@ namespace BasketballTournamentTask_cdbhnd
             double u1 = 1.0 - rand.NextDouble();
             double u2 = 1.0 - rand.NextDouble();
             double randStdNormal = Math.Sqrt(-2.0 * Math.Log(u1)) * Math.Sin(2.0 * Math.PI * u2);
-            double randNormal = mean + stdDev * randStdNormal; //random normal(mean,stdDev^2)
+            double randNormal = mean + stdDev * randStdNormal;
 
             return randNormal;
         }
