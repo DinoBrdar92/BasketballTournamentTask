@@ -10,20 +10,6 @@ namespace BasketballTournamentTask_cdbhnd
 {
     internal class Program
     {
-        struct Game
-        {
-            public Team Team1 { get; set; }
-            public Team Team2 { get; set; }
-            public int? Team1Score { get; set; }
-            public int? Team2Score { get; set; }
-
-            public Game(Team team1, Team team2)
-            {
-                Team1 = team1;
-                Team2 = team2;
-            }
-        }
-
         public static DbContext Dbc { get; set; } = new();
 
         private static Dictionary<string, Team> allTeams = new();

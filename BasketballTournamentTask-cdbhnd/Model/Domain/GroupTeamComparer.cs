@@ -11,45 +11,39 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
     {
         public int Compare(Team? x, Team? y)
         {
+            // Points comparison
             if (x.Points != y.Points)
             {
-                if (x.Points > y.Points)
-                {
-                    Debug.WriteLine($"{x.ISOCode} has more points than {y.ISOCode} ({x.Points} to {y.Points} points) - {x.ISOCode} goes in front of {y.ISOCode}");
-                }
-                else
-                {
-                    Debug.WriteLine($"{y.ISOCode} has more points than {x.ISOCode} ({y.Points} to {x.Points} points) - {y.ISOCode} goes in front of {x.ISOCode}");
-                }
+                Func<Team, Team, string> pointsMsg = (t1, t2) => { return $"{t1.ISOCode} has more points than {t2.ISOCode} ({t1.Points} to {t2.Points})"; };
+
+                Debug.WriteLine(x.Points > y.Points ? pointsMsg(x, y) : pointsMsg(y, x));
+
                 return y.Points.CompareTo(x.Points);
             }
 
             // Head-to-head comparison
             if (x.HeadToHead.ContainsKey(y.ISOCode) && y.HeadToHead.ContainsKey(x.ISOCode))
             {
+                string threeWayTieMsg = "";
+
                 var h2hX = x.HeadToHead[y.ISOCode];
                 var h2hY = y.HeadToHead[x.ISOCode];
-                string threeWayTieMsg = "";
 
                 // 1. Compare H2H Wins
                 if (x.IsInThreeTeamTie && y.IsInThreeTeamTie)
                 {
                     Debug.WriteLine($"{x.ISOCode} and {y.ISOCode} are involved in a 3-way tie");
+                    threeWayTieMsg = "three-way ";
+
                     h2hX = x.HeadToHead["otherTwo"];
                     h2hY = y.HeadToHead["otherTwo"];
-                    threeWayTieMsg = "three-way ";
                 }
 
                 if (h2hX.Wins != h2hY.Wins)
                 {
-                    if (h2hY.Wins > h2hX.Wins)
-                    {
-                        Debug.WriteLine($"{y.ISOCode} has won H2H against {x.ISOCode} - {y.ISOCode} goes in front of {x.ISOCode}");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"{x.ISOCode} has won H2H against {y.ISOCode} - {x.ISOCode} goes in front of {y.ISOCode}");
-                    }
+                    Func<Team, Team, string> h2hMsg = (t1, t2) => { return $"{t2.ISOCode} has won H2H against {t1.ISOCode}"; };
+
+                    Debug.WriteLine(h2hY.Wins > h2hX.Wins ? h2hMsg(x, y) : h2hMsg(y, x));
 
                     return h2hY.Wins.CompareTo(h2hX.Wins);
                 }
@@ -59,28 +53,20 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
                 // 2. Compare H2H Points Difference
                 if (h2hX.PointsDifference != h2hY.PointsDifference)
                 {
-                    if (h2hY.PointsDifference > h2hX.PointsDifference)
-                    {
-                        Debug.WriteLine($"{y.ISOCode} has a better {threeWayTieMsg}point differential compared to {x.ISOCode} ({(h2hY.PointsDifference > 0 ? "+" : "")}{h2hY.PointsDifference} to {(h2hX.PointsDifference > 0 ? "+" : "")}{h2hX.PointsDifference}) - {y.ISOCode} goes in front of {x.ISOCode}");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"{x.ISOCode} has a better {threeWayTieMsg}point differential compared to {y.ISOCode} ({(h2hX.PointsDifference > 0 ? "+" : "")}{h2hX.PointsDifference} to {(h2hY.PointsDifference > 0 ? "+" : "")}{h2hY.PointsDifference}) - {x.ISOCode} goes in front of {y.ISOCode}");
-                    }
+                    Func<Team, HeadToHeadStats, Team, HeadToHeadStats, string> ptsDiffMsg = (t1, h2hT1, t2, h2hT2) => { return $"{t2.ISOCode} has a better {threeWayTieMsg}point differential compared to {t1.ISOCode} ({(h2hT2.PointsDifference > 0 ? "+" : "")}{h2hT2.PointsDifference} to {(h2hT1.PointsDifference > 0 ? "+" : "")}{h2hT1.PointsDifference})";  };
+                    
+                    Debug.WriteLine(h2hY.PointsDifference > h2hX.PointsDifference ? ptsDiffMsg(x, h2hX, y, h2hY) : ptsDiffMsg(y, h2hY, x, h2hX));
+                    
                     return h2hY.PointsDifference.CompareTo(h2hX.PointsDifference);
                 }
 
                 // 3. Compare H2H Points Scored
                 if (h2hX.PointsScored != h2hY.PointsScored)
                 {
-                    if (h2hY.PointsScored > h2hX.PointsScored)
-                    {
-                        Debug.WriteLine($"{y.ISOCode} leads in {threeWayTieMsg}points scored compared to {x.ISOCode} ({h2hY.PointsScored} to {h2hX.PointsScored}) - {y.ISOCode} goes in front of {x.ISOCode}");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"{x.ISOCode} leads in {threeWayTieMsg}points scored compared to {y.ISOCode} ({h2hX.PointsScored} to {h2hY.PointsScored}) - {y.ISOCode} goes in front of {y.ISOCode}");
-                    }
+                    Func<Team, HeadToHeadStats, Team, HeadToHeadStats, string> ptsScoredMsg = (t1, h2hT1, t2, h2hT2) => { return $"{t2.ISOCode} leads in {threeWayTieMsg}points scored compared to {t1.ISOCode} ({h2hT2.PointsScored} to {h2hT1.PointsScored})"; };
+
+                    Debug.WriteLine(h2hY.PointsScored > h2hX.PointsScored ? ptsScoredMsg(x, h2hX, y, h2hY) : ptsScoredMsg(y, h2hY, x, h2hX));
+
                     return h2hY.PointsScored.CompareTo(h2hX.PointsScored);
                 }
             }
@@ -88,33 +74,25 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
             // Total points difference
             if (x.PointsDifference != y.PointsDifference)
             {
-                if (x.PointsDifference > y.PointsDifference)
-                {
-                    Debug.WriteLine($"{x.ISOCode} has better point differential than {y.ISOCode} ({(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} to {(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} point diff) - {x.ISOCode} goes in front of {y.ISOCode}");
-                }
-                else
-                {
-                    Debug.WriteLine($"{y.ISOCode} has better point differential than {x.ISOCode} ({(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} to {(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} point diff) - {y.ISOCode} goes in front of {x.ISOCode}");
-                }
+                Func<Team, Team, string> ptsTotMsg = (t1, t2) => { return $"{t1.ISOCode} has a better total point differential than {t2.ISOCode} ({(t1.PointsDifference > 0 ? "+" : "")}{t1.PointsDifference} to {(t2.PointsDifference > 0 ? "+" : "")}{t2.PointsDifference})"; };
+
+                Debug.WriteLine(x.PointsDifference > y.PointsDifference ? ptsTotMsg(x, y) : ptsTotMsg(y, x));
+
                 return y.PointsDifference.CompareTo(x.PointsDifference);
             }
 
             // Total points scored
             if (x.PointsScored != y.PointsScored)
             {
-                if (x.PointsScored > y.PointsScored)
-                {
-                    Debug.WriteLine($"{x.ISOCode} has scored more points than {y.ISOCode} ({x.PointsScored} to {y.Points} points) - {x.ISOCode} goes in front of {y.ISOCode}");
-                }
-                else
-                {
-                    Debug.WriteLine($"{y.ISOCode} has scored more points than {x.ISOCode} ({y.PointsScored} to {x.Points} points) - {y.ISOCode} goes in front of {x.ISOCode}");
-                }
+                Func<Team, Team, string> ptsScoredMsg = (t1, t2) => { return $"{t1.ISOCode} has scored more total points than {t2.ISOCode} ({t1.PointsScored} to {t2.Points})"; };
+
+                Debug.WriteLine(x.PointsScored > y.PointsScored ? ptsScoredMsg(x, y) : ptsScoredMsg(y, x));
+
                 return y.PointsScored.CompareTo(x.PointsScored);
             }
 
             // FIBA ranking
-            Debug.WriteLine($"{y.ISOCode} is ranked higher than {x.ISOCode} in FIBA rankings ({y.Points}. to {x.Points}. place) - {y.ISOCode} goes in front of {x.ISOCode}");
+            Debug.WriteLine($"{y.ISOCode} is ranked higher than {x.ISOCode} in FIBA rankings ({y.Points}. to {x.Points}.)");
             return x.FIBARanking.CompareTo(y.FIBARanking);
         }
     }

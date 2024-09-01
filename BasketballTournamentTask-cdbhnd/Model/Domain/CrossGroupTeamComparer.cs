@@ -11,49 +11,38 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
     {
         public int Compare(Team? x, Team? y)
         {
+            // Points comparison
             if (x.Points != y.Points)
             {
-                if (x.Points > y.Points)
-                {
-                    Debug.WriteLine($"{x.ISOCode} has more points than {y.ISOCode} ({x.Points} to {y.Points} points) - {x.ISOCode} goes in front of {y.ISOCode}");
-                }
-                else
-                {
-                    Debug.WriteLine($"{y.ISOCode} has more points than {x.ISOCode} ({y.Points} to {x.Points} points) - {y.ISOCode} goes in front of {x.ISOCode}");
-                }
+                Func<Team, Team, string> pointsMsg = (t1, t2) => { return $"{t1.ISOCode} has more points than {t2.ISOCode} ({t1.Points} to {t2.Points})"; };
+
+                Debug.WriteLine(x.Points > y.Points ? pointsMsg(x, y) : pointsMsg(y, x));
+
                 return y.Points.CompareTo(x.Points);
             }
 
             // Total points difference
             if (x.PointsDifference != y.PointsDifference)
             {
-                if (x.PointsDifference > y.PointsDifference)
-                {
-                    Debug.WriteLine($"{x.ISOCode} has a better points differential than {y.ISOCode} ({(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} to {(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} point diff) - {x.ISOCode} goes in front of {y.ISOCode}");
-                }
-                else
-                {
-                    Debug.WriteLine($"{y.ISOCode} has a better points differential than {x.ISOCode} ({(y.PointsDifference > 0 ? "+" : "")}{y.PointsDifference} to {(x.PointsDifference > 0 ? "+" : "")}{x.PointsDifference} point diff) - {y.ISOCode} goes in front of {x.ISOCode}");
-                }
+                Func<Team, Team, string> ptsTotMsg = (t1, t2) => { return $"{t1.ISOCode} has a better total point differential than {t2.ISOCode} ({(t1.PointsDifference > 0 ? "+" : "")}{t1.PointsDifference} to {(t2.PointsDifference > 0 ? "+" : "")}{t2.PointsDifference})"; };
+
+                Debug.WriteLine(x.PointsDifference > y.PointsDifference ? ptsTotMsg(x, y) : ptsTotMsg(y, x));
+
                 return y.PointsDifference.CompareTo(x.PointsDifference);
             }
 
             // Total points scored
             if (x.PointsScored != y.PointsScored)
             {
-                if (x.PointsScored > y.PointsScored)
-                {
-                    Debug.WriteLine($"{x.ISOCode} has scored more points than {y.ISOCode} ({x.PointsScored} to {y.Points} points) - {x.ISOCode} goes in front of {y.ISOCode}");
-                }
-                else
-                {
-                    Debug.WriteLine($"{y.ISOCode} has scored more points than {x.ISOCode} ({y.PointsScored} to {x.Points} points) - {y.ISOCode} goes in front of {x.ISOCode}");
-                }
+                Func<Team, Team, string> ptsScoredMsg = (t1, t2) => { return $"{t1.ISOCode} has scored more total points than {t2.ISOCode} ({t1.PointsScored} to {t2.Points})"; };
+
+                Debug.WriteLine(x.PointsScored > y.PointsScored ? ptsScoredMsg(x, y) : ptsScoredMsg(y, x));
+
                 return y.PointsScored.CompareTo(x.PointsScored);
             }
 
             // FIBA ranking
-            Debug.WriteLine($"{y.ISOCode} is placed higher than {x.ISOCode} in FIBA rankings - ({y.Points} to {x.Points} points) - {y.ISOCode} goes in front of {x.ISOCode}");
+            Debug.WriteLine($"{y.ISOCode} is ranked higher than {x.ISOCode} in FIBA rankings ({y.Points}. to {x.Points}.)");
             return x.FIBARanking.CompareTo(y.FIBARanking);
         }
     }
