@@ -11,7 +11,24 @@
 
 - Pisani su komentari i dokumentacija za glavne metode.
 
-- Program sadrži dodatne argumente koji se mogu navesti pri pokretanju programa. Oni se mogu primeniti u nastavku njegovog naziva (npr. unutar CMD-a `BasketballTournamentTask-cdbhnd.exe -v -t 1` - za PowerShell treba dodati `.\` ispred imena programa), ili unutar Visual Studija, desni klik na projekat *-> Properties -> Debug -> General -> Open Debug launch profiles UI* uneti ih u polje *Command line arguments* (npr `-t -v`).
+- Sortiranje grupa radi koristeći [oficijelni pravilnik sa FIBA sajta](https://www.fiba.basketball/documents/official-basketball-rules/current.pdf), odnosno:
+
+Apendiks D.1. za prvu fazu, u redosledu:
+1. Bodovi
+2. Međusobni duel
+3. Koš razlika iz međusobnog duela
+4. Broj postignutih poena iz međusobnih duela
+5. Ukupna koš razlika
+6. Ukupan broj poena
+7. Pozicija na FIBA rang listi
+
+Apendiks D.5. za rangiranje od 1. do 9. mesta, u redosledu:
+1. Bodovi
+2. Koš razlika
+3. Broj postignutih poena
+4. Pozicija na FIBA rang listi
+
+- Program sadrži dodatne argumente koji se mogu navesti pri pokretanju programa. Oni se mogu primeniti u nastavku njegovog naziva (npr. unutar CMD-a `BasketballTournamentTask-cdbhnd.exe -v -t 1` - za PowerShell treba i `.\` ispred imena programa), ili unutar Visual Studija, desni klik na projekat *-> Properties -> Debug -> General -> Open Debug launch profiles UI*, a zatim uneti u polje *Command line arguments* (npr `-t -v`).
 
 ### Ovo su dodatni parametri koji su dostupni:
 ---
@@ -46,22 +63,6 @@ Za vrednosti i:
   - 3 - Demonstrira da za trećeplasirane ekipe u narednoj rundi (plasman od 7. do 9. mesta) presuđuje koš razlika
 
 
-Proces radi koristeći [oficijelni pravilnik sa FIBA sajta](https://www.fiba.basketball/documents/official-basketball-rules/current.pdf), odnosno:
-Apendiks D.1. za prvu fazu, u redosledu:
-1. Bodovi
-2. Međusobni duel
-3. Koš razlika iz međusobnog duela
-4. Broj postignutih poena iz međusobnih duela
-5. Ukupna koš razlika
-6. Ukupan broj poena
-7. Pozicija na FIBA rang listi
-
-Apendiks D.5. za rangiranje od 1. do 9. mesta, u redosledu:
-1. Bodovi
-2. Koš razlika
-3. Broj postignutih poena
-4. Pozicija na FIBA rang listi
-
 > [!WARNING]
 > 
 > - `exibitions.json`, linija 113 u originalnom fajlu: za protivnika Brazila stoji `"POR"`: Pretpostavio sam da se mislilo na Portoriko pa sam ispravio taj unos na `"PRI"`. S obzirom da je za računanje ELO rejtinga neophodan i ELO rejting protivnika, te kako Portugal (čiji je `POR` zapravo ISO kôd) ne učestvuje na OI, a u našem zadatku nemamo FIBA ranking svih zemalja sveta, traženje tima koji ne postoji bi vratilo `NullException`.
@@ -70,4 +71,3 @@ Apendiks D.5. za rangiranje od 1. do 9. mesta, u redosledu:
 
 > [!NOTE]
 > Malo sam izmenio redosled reprezentacija u `groups.json` fajlu, kako bi se izgenerisao raspored utakmica po kolima identičan onom koji se desio zapravo.
-
