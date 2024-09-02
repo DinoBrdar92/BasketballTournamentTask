@@ -84,7 +84,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
             // Total points scored
             if (x.PointsScored != y.PointsScored)
             {
-                Func<GroupEntry, GroupEntry, string> ptsScoredMsg = (t1, t2) => { return $"{t1.Team.ISOCode} has scored more total points than {t2.Team.ISOCode} ({t1.PointsScored} to {t2.Points})"; };
+                Func<GroupEntry, GroupEntry, string> ptsScoredMsg = (t1, t2) => { return $"{t1.Team.ISOCode} has scored more total points than {t2.Team.ISOCode} ({t1.PointsScored} to {t2.PointsScored})"; };
 
                 Debug.WriteLine(x.PointsScored > y.PointsScored ? ptsScoredMsg(x, y) : ptsScoredMsg(y, x));
 
@@ -92,7 +92,10 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
             }
 
             // FIBA ranking
-            Debug.WriteLine($"{y.Team.ISOCode} is ranked higher than {x.Team.ISOCode} in FIBA rankings ({y.Points}. to {x.Points}.)");
+            Func<GroupEntry, GroupEntry, string> fibaRankingMsg = (t1, t2) => { return $"{t1.Team.ISOCode} is ranked higher than {t2.Team.ISOCode} in FIBA rankings ({t1.Team.FIBARanking}. to {t2.Team.FIBARanking}.)"; };
+
+            Debug.WriteLine(x.Team.FIBARanking < y.Team.FIBARanking ? fibaRankingMsg(x, y) : fibaRankingMsg(y, x));
+
             return x.Team.FIBARanking.CompareTo(y.Team.FIBARanking);
         }
     }

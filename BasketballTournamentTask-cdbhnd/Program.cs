@@ -12,7 +12,8 @@ namespace BasketballTournamentTask_cdbhnd
 {
     internal class Program
     {
-        private const bool TEST_PREDEFINED_GAMES = false;
+        private static bool testPredefinedGames = false;
+        private static int testScenario = 0;
         public static DbContext Dbc { get; set; } = new();
 
         private static Dictionary<string, Team> allTeams = new();
@@ -21,8 +22,42 @@ namespace BasketballTournamentTask_cdbhnd
 
         static void Main(string[] args)
         {
+            //help ako se doda -h kao argument
+            if (args.Contains("-h"))
+            {
+                Console.WriteLine("Dobrodošli u pomoć za simulaciju olimpijskog turnira u košarci!\r\n\r\nOvo su dodatni parametri koji su dostupni:\r\n\r\n-h\t\tPomoć (ovaj dijalog)\r\n\r\n-v\t\tIsključiti ASCII artwork sa vrha i dna stranice (može prikazati pogrešne simbole ako terminal koristi ANSI umesto UTF-8 enkodiranja)\r\n\r\n-t <i>\t\tKorišćenje test rezultata za grupnu fazu (korisno za testiranje rangiranja tabele)\r\n\t\t\t\r\n\t\t<i> je opcioni parametar koji predstavlja različite test slučajeve za grupnu fazu.\r\n\t\tAko se izostavi, podrazumevaće se da je izabran Actual test scenario.\r\n\r\n\t\tZa vrednosti i =\r\n\t\t0 -> Actual: Rezultati koji su se zapravo dogodili na OI 2024.\r\n\r\n\t\t1 -> Test1:\r\n\t\t\t* Grupa A: Demonstrira formiranje kruga 3 tima gde presuđuje FIBA rang lista\r\n\t\t\t* Grupa B: Demonstrira formiranje kruga 3 tima gde presuđuje ukupan broj poena\r\n\t\t\t* Grupa C: Demonstrira formiranje kruga 3 tima gde presuđuje ukupna poen razlika\r\n\r\n\t\t2 -> Test2: \r\n\t\t\t* Grupa A: Demonstrira formiranje kruga 3 tima gde presuđuje broj postignutih poena iz međusobnih duela\r\n\t\t\t* Grupa B: Demonstrira formiranje kruga 3 tima gde presuđuje poen razlika iz međusobnih duela\r\n\t\t\t* Grupa C: Demonstrira 2x dve ekipe sa istim brojem bodova gde presuđuje međusobni duel\r\n\r\n\t\t3 -> Test3:\r\n\t\t\t* Grupe A, B, C: demonstriraju sortiranje na osnovu broja bodova\r\n\t\t\t* 1. Demonstrira da za prvoplasirane ekipe u narednoj rundi (plasman od 1. do 3. mesta) presuđuje FIBA ranking\r\n\t\t\t* 2. Demonstrira da za drugoplasirane ekipe u narednoj rundi (plasman od 4. do 6. mesta) presuđuje broj postignutih poena\r\n\t\t\t* 3. Demonstrira da za trećeplasirane ekipe u narednoj rundi (plasman od 7. do 9. mesta) presuđuje koš razlika");
+                Environment.Exit(0);
+            }
+
+            //korišćenje test scenarija za grupnu fazu (za testiranje sortiranja po različitim kriterijumima)
+            if (args.Contains("-t"))
+            {
+                testPredefinedGames = true;
+
+                int commandIndex = Array.IndexOf(args, "-t");
+
+                try
+                {
+                    testScenario = Int32.Parse(args[commandIndex + 1]);
+                }
+                catch (IndexOutOfRangeException e)
+                {
+                    Debug.WriteLine("There is no parameter after -t. Complete error info below:");
+                    Debug.WriteLine(e);
+                }
+                catch (Exception e1)
+                {
+                    Debug.WriteLine("Parameter after -t is not number. Program will use default TestScenario (0). Complete error info below:");
+                    Debug.WriteLine(e1);
+                }
+
+            }
+
+
             //inicijalizacija iz baze (čitanje json fajlova i deserijalizacija u objekte)
             Dbc = new DbContext();
+
+            
 
             
             foreach (var groupDto in Dbc.GroupsDto)
@@ -66,7 +101,7 @@ namespace BasketballTournamentTask_cdbhnd
             {
                 { "I kolo", [(0, 1),(2, 3)] },
                 { "II kolo", [(1, 2),(3, 0)] },
-                { "III kolo", [(1, 3),(0, 2)] }
+                { "III kolo", [(1, 3),(2, 0)] }
             };
 
 
@@ -75,10 +110,10 @@ namespace BasketballTournamentTask_cdbhnd
 
             //namerno potisnuo upozorenje jer tako radi po dizajnu, u zavisnosti od vrednosti polja TEST_PREDEFINED_GAMES iz zaglavlja
             //simulacija mečeva u grupi
-            if (!TEST_PREDEFINED_GAMES)
+            if (!testPredefinedGames)
                 SimulateAllGroupStageGames(roundsSchedule);
             else
-                CreatePredefinedGroupStageGames();
+                CreatePredefinedGroupStageGames(testScenario);
 
 
 #pragma warning restore CS0162 // Unreachable code detected
@@ -264,10 +299,10 @@ namespace BasketballTournamentTask_cdbhnd
                 // ovde će ući samo ako imaju situacije da su npr. u šeširu E dva tima iz A, a u šeširu F da su timovi iz grupa B i C.
                 if (topTeam1 is null || bottomTeam1 is null || topTeam2 is null || bottomTeam2 is null)
                 {
-                    Random rand1 = new Random();
+                    Random rand = new Random();
 
-                    int randomIndexTop = rand1.Next(0, 2);
-                    int randomIndexBottom = rand1.Next(0, 2);
+                    int randomIndexTop = rand.Next(0, 2);
+                    int randomIndexBottom = rand.Next(0, 2);
 
                     topTeam1 = topHat[randomIndexTop].Team;
                     bottomTeam1 = bottomHat[randomIndexBottom].Team;
@@ -290,8 +325,7 @@ namespace BasketballTournamentTask_cdbhnd
             }
 
             //"Winners of the Quarter-Finals played by the teams from Pot D cannot play each other in the Semi-Final games."
-            Random rand = new Random();
-            int randomIndex = rand.Next(2, 4);
+            int randomIndex = new Random().Next(2, 4);
 
             Game temp = quarterfinalGames[1];
             quarterfinalGames[1] = quarterfinalGames[randomIndex];
@@ -426,72 +460,7 @@ namespace BasketballTournamentTask_cdbhnd
             }
         }
 
-        private static void CreatePredefinedGroupStageGames()
-        {
-            //for copy-pasting and just editing results
-            /*
-            Console.WriteLine("I kolo:\n\tGrupa A:");
-            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 0, 0, 0);
-            Console.WriteLine("\tGrupa B:");
-            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 0, 0, 0);
-            Console.WriteLine("\tGrupa C:");
-            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 0, 0, 0);
-
-            Console.WriteLine("II kolo:\n\tGrupa A:");
-            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 0, 0, 0);
-            Console.WriteLine("\tGrupa B:");
-            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 0, 0, 0);
-            Console.WriteLine("\tGrupa C:");
-            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 0, 0, 0);
-
-            Console.WriteLine("III kolo:\n\tGrupa A:");
-            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 0, 0, 0);
-            Console.WriteLine("\tGrupa B:");
-            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 0, 0, 0);
-            Console.WriteLine("\tGrupa C:");
-            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 0, 0, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 0, 0, 0);
-             */
-
-            // actual results
-            Console.WriteLine("I kolo:\n\tGrupa A:");
-            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 92, 80, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 79, 86, 0);
-            Console.WriteLine("\tGrupa B:");
-            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 97, 77, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 78, 66, 0);
-            Console.WriteLine("\tGrupa C:");
-            GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 90, 79, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 84, 110, 0);
-
-            Console.WriteLine("II kolo:\n\tGrupa A:");
-            GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 84, 77, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 93, 83, 0);
-            Console.WriteLine("\tGrupa B:");
-            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 90, 94, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 73, 86, 0);
-            Console.WriteLine("\tGrupa C:");
-            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 66, 107, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 103, 86, 0);
-
-            Console.WriteLine("III kolo:\n\tGrupa A:");
-            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 71, 77, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 88, 85, 0);
-            Console.WriteLine("\tGrupa B:");
-            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 84, 102, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 71, 85, 0);
-            Console.WriteLine("\tGrupa C:");
-            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 83, 104, 0);
-            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 96, 85, 0);
-        }
+        
 
         private static (int team1Score, int team2Score, int overtimeCounter) SimulateGame(GroupEntry teamInGroup1, GroupEntry teamInGroup2)
         {
@@ -731,6 +700,241 @@ namespace BasketballTournamentTask_cdbhnd
             double randNormal = mean + stdDev * randStdNormal;
 
             return randNormal;
+        }
+
+
+        /// <summary>
+        /// Test scenariji predviđeni za korišćenje sa <see cref="CreatePredefinedGroupStageGames"/> funkcijom.
+        /// </summary>
+        enum TestScenario
+        {
+            /// <summary>Rezultati koji su se zapravo desili na OI 2024. (u svrhu poređenja da li su se grupe u programu sortirale isto kako su i u stvarnosti)</summary>
+            Actual,
+            /// <summary>
+            /// <para>Grupa A: demonstrira 3-team tie gde FIBA rang lista presuđuje (svi imaju istu koš razliku i dati broj poena u međusobnim duelima)</para>
+            /// <para>Grupa B: demonstrira 3-team tie gde presuđuje ukupan broj poena (svi imaju istu međusobnu koš razliku, ali u meču sa četvrtom ekipom u grupi neko je dao i primio više poena)</para>
+            /// <para>Group C: demonstrira 3-team tie gde presuđuje ukupna koš razlika (svi imaju istu međusobnu koš razliku, ali u meču sa četvrtom ekipom u grupi neko je dao više, a primio manje poena)</para>
+            /// </summary>
+            Test1,
+            /// <summary>
+            /// <para>Grupa A: demonstrira 3-team tie gde presuđuje broj postignutih poena iz međusobnih duela (iste koš razlike u međusobnim duelima)</para>
+            /// <para>Grupa B: demonstrira 3-team tie gde presuđuje koš razlika iz međusobnog duela (nije moguće testirati 3-team tie gde presuđuje međusobni duel, jer se formirao krug gde svi imaju 1-1)</para>
+            /// <para>Group C: demonstrira 2x2 team tie gde presuđuje međusobni duel (ništa drugo nije moguće jer je neko morao pobediti između 2 ekipe, budući da remi ne postoji u košarci)</para>
+            /// </summary>
+            Test2,
+            /// <summary>
+            /// <para>1. Demonstrira da za prvoplasirane ekipe u narednoj rundi (plasman od 1. do 3. mesta) presuđuje FIBA ranking</para>
+            /// <para>2. Demonstrira da za drugoplasirane ekipe u narednoj rundi (plasman od 4. do 6. mesta) presuđuje broj postignutih poena</para>
+            /// <para>3. Demonstrira da za trećeplasirane ekipe u narednoj rundi (plasman od 7. do 9. mesta) presuđuje koš razlika</para>
+            /// </summary>
+            Test3
+        }
+
+        /// <summary>
+        /// Testiranje predefinisanim rezultatima
+        /// Moguće korišćenje <see cref="TestScenario"/> enumeracije.
+        /// </summary>
+        /// <param name="testScenario">
+        /// Izbor test scenarija.
+        /// 
+        /// </param>
+        private static void CreatePredefinedGroupStageGames(int testScenario = 0)
+        {
+            Console.WriteLine($"\n*** WARNING: Group results not simulated! Testing with {Enum.GetName(typeof(TestScenario), testScenario)} data ***");
+            Console.WriteLine("You can follow sorting steps in Debug Output\n");
+
+            switch (testScenario)
+            {
+                case 1:
+                    {
+                        Console.WriteLine("Grupa A: Demonstrira formiranje kruga 3 tima gde presuđuje FIBA rang lista\nGrupa B: Demonstrira formiranje kruga 3 tima gde presuđuje ukupan broj poena\nGrupa C: Demonstrira formiranje kruga 3 tima gde presuđuje ukupna poen razlika\n");
+                        
+                        //Test 1
+                        Console.WriteLine("I kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 90, 100, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 99, 89, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 99, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 100, 90, 1);
+
+                        Console.WriteLine("II kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 91, 101, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 90, 101, 0);
+
+                        Console.WriteLine("III kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 90, 100, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 90, 100, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 90, 100, 2);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 90, 100, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 100, 90, 0);
+
+                    }
+                    break;
+
+                case 2:
+                    {
+                        Console.WriteLine("Grupa A: Demonstrira formiranje kruga 3 tima gde presuđuje broj postignutih poena iz međusobnih duela\nGrupa B: Demonstrira formiranje kruga 3 tima gde presuđuje poen razlika iz međusobnih duela\nGrupa C: Demonstrira 2x dve ekipe sa istim brojem bodova gde presuđuje međusobni duel");
+                        
+                        //Test 2
+                        Console.WriteLine("\nI kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 91, 101, 1);
+                        GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 90, 100, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 102, 90, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 100, 90, 0);
+
+                        Console.WriteLine("\nII kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 89, 99, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 103, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 90, 100, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 100, 90, 0);
+
+                        Console.WriteLine("\nIII kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 90, 100, 2);
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 90, 100, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 100, 90, 0);
+                    }
+                    break;
+
+                case 3:
+                    {
+                        Console.WriteLine("Grupe A, B, C: demonstriraju sortiranje na osnovu broja bodova\n1. Demonstrira da za prvoplasirane ekipe u narednoj rundi (plasman od 1. do 3. mesta) presuđuje FIBA ranking\n2. Demonstrira da za drugoplasirane ekipe u narednoj rundi (plasman od 4. do 6. mesta) presuđuje broj postignutih poena\n3. Demonstrira da za trećeplasirane ekipe u narednoj rundi (plasman od 7. do 9. mesta) presuđuje koš razlika");
+
+                        //Test 3
+                        Console.WriteLine("\nI kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 91, 101, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 90, 100, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 100, 90, 2);
+                        GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 99, 90, 0);
+
+                        Console.WriteLine("\nII kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 101, 91, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 90, 100, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 102, 92, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 90, 100, 0);
+
+                        Console.WriteLine("\nIII kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 90, 100, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 101, 90, 1);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 100, 90, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 100, 90, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 102, 92, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 100, 90, 0);
+                    }
+                    break;
+
+                default:
+                    {
+                        // Test 0: Pravi rezultati sa Olimpijskih igara
+                        // Za poređenje da li će sortiranje tabele na osnovu unetih rezultata biti isto kao što se zapravo i desilo
+                        Console.WriteLine("I kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 79, 86, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 92, 80, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 97, 77, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 78, 66, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 90, 79, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 84, 110, 0);
+
+                        Console.WriteLine("\nII kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 93, 83, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 84, 77, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 90, 94, 1);
+                        GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 73, 86, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 66, 107, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 103, 86, 0);
+
+                        Console.WriteLine("\nIII kolo:\n\tGrupa A:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 88, 85, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 71, 77, 0);
+                        Console.WriteLine("\tGrupa B:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 84, 102, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 71, 85, 0);
+                        Console.WriteLine("\tGrupa C:");
+                        GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 83, 104, 0);
+                        GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 96, 85, 0);
+                    }
+                    break;
+
+            }
+
+            //prazno - for copy-pasting and just editing results
+            /*
+            Console.WriteLine("I kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 0, 0, 2);
+            GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 0, 0, 0);
+
+            Console.WriteLine("II kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 0, 0, 0);
+
+            Console.WriteLine("III kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 0, 0, 1);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 0, 0, 0);
+            */
+
+
+
+
+
+
+
+
         }
     }
 }
