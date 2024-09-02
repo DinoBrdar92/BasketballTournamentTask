@@ -14,7 +14,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
             x = x ?? new GroupEntry();
             y = y ?? new GroupEntry();
 
-            // Points comparison
+            // Poređenje bodova
             if (x.Points != y.Points)
             {
                 Func<GroupEntry, GroupEntry, string> pointsMsg = (t1, t2) => { return $"{t1.Team.ISOCode} has more points than {t2.Team.ISOCode} ({t1.Points} to {t2.Points})"; };
@@ -24,7 +24,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
                 return y.Points.CompareTo(x.Points);
             }
 
-            // Total points difference
+            // Poređenje ukupne poen razlike
             if (x.PointsDifference != y.PointsDifference)
             {
                 Func<GroupEntry, GroupEntry, string> ptsTotMsg = (t1, t2) => { return $"{t1.Team.ISOCode} has a better total point differential than {t2.Team.ISOCode} ({(t1.PointsDifference > 0 ? "+" : "")}{t1.PointsDifference} to {(t2.PointsDifference > 0 ? "+" : "")}{t2.PointsDifference})"; };
@@ -34,7 +34,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
                 return y.PointsDifference.CompareTo(x.PointsDifference);
             }
 
-            // Total points scored
+            // Poređenje ukupno datih poena
             if (x.PointsScored != y.PointsScored)
             {
                 Func<GroupEntry, GroupEntry, string> ptsScoredMsg = (t1, t2) => { return $"{t1.Team.ISOCode} has scored more total points than {t2.Team.ISOCode} ({t1.PointsScored} to {t2.PointsScored})"; };
@@ -44,7 +44,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
                 return y.PointsScored.CompareTo(x.PointsScored);
             }
 
-            // FIBA ranking
+            // Poređenje pozicije na FIBA rang listi
             Func<GroupEntry, GroupEntry, string> fibaRankingMsg = (t1, t2) => { return $"{t1.Team.ISOCode} is ranked higher than {t2.Team.ISOCode} in FIBA rankings ({t1.Team.FIBARanking}. to {t2.Team.FIBARanking}.)"; };
 
             Debug.WriteLine(x.Team.FIBARanking < y.Team.FIBARanking ? fibaRankingMsg(x, y) : fibaRankingMsg(y, x));

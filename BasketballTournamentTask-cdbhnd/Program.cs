@@ -14,10 +14,10 @@ namespace BasketballTournamentTask_cdbhnd
     {
         private static bool testPredefinedGames = false;
         private static int testScenario = 0;
-        public static DbContext Dbc { get; set; } = new();
+
+        private static DbContext dbc = new();
 
         private static Dictionary<string, Team> allTeams = new();
-
         private static Dictionary<string, Dictionary<string, GroupEntry>> allGroups = new();
 
         static void Main(string[] args)
@@ -55,12 +55,12 @@ namespace BasketballTournamentTask_cdbhnd
 
 
             //inicijalizacija iz baze (čitanje json fajlova i deserijalizacija u objekte)
-            Dbc = new DbContext();
+            dbc = new DbContext();
 
             
 
-            
-            foreach (var groupDto in Dbc.GroupsDto)
+            //dodavanje timova i grupa
+            foreach (var groupDto in dbc.GroupsDto)
             {
                 string groupLetter = groupDto.Key;
 
@@ -417,7 +417,7 @@ namespace BasketballTournamentTask_cdbhnd
             int adjustment = 30;
             Team team = allTeams[teamCode];
             double elo = FibaRankingToElo(team.FIBARanking);
-            List<GameDto> exhibitionsByTeam = Dbc.ExhibitionsDto.GetValueOrDefault(team.ISOCode) ?? new();
+            List<GameDto> exhibitionsByTeam = dbc.ExhibitionsDto.GetValueOrDefault(team.ISOCode) ?? new();
 
             foreach (GameDto exhibition in exhibitionsByTeam)
             {
