@@ -41,7 +41,7 @@ Apendiks D.5. za rangiranje od 1. do 9. mesta, u redosledu:
    `<i>` je opcioni parametar koji predstavlja različite test slučajeve za grupnu fazu.
    Ako se izostavi (ili se unese nepostojeći broj), podrazumevaće se da je izabran Actual test scenario (0).
 
-Za vrednosti i:
+Za vrednosti `<i>`:
 
   `-t` / `-t 0` -> Actual:
   - Rezultati koji su se zapravo dogodili na OI 2024. Zgodno za proveru da li je tabela u programu sortirana kao što je i zapravo bilo
