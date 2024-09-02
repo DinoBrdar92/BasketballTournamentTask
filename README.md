@@ -16,7 +16,7 @@
 Apendiks D.1. za prvu fazu, u redosledu:
 1. Bodovi
 2. Međusobni duel
-3. Koš razlika iz međusobnog duela
+3. Koš razlika iz međusobnih duela
 4. Broj postignutih poena iz međusobnih duela
 5. Ukupna koš razlika
 6. Ukupan broj poena
