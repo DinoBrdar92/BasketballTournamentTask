@@ -70,4 +70,4 @@ Za vrednosti `<i>`:
 > - `README.md`, linija 62: za ukrštanje parova polufinala piše da su "parovi nastali ukrštanjem šešira `D i E` ukrštaju sa parovima nastalim ukrštanjem šešira `F i G`", a u prethodnoj rečenici kaže "`D` se nasumično ukrštaju sa > timovima iz šešira `G`, a timovi iz šešira `E` sa timovima iz šešira `F`". Na osnovu primera koji se zapravo desio na OI da se zaključiti da se parovi četvrtfinala formiraju tako što se izvlače parovi iz šešira `D i G` i `E i F`, a > zatim u polufinalu pobednici `D/G` idu na pobednike `E/F`. Ovo ima smisla jer se na taj način izbegava da dva najbolje plasirana tima idu jedan na drugog već u polufinalu.
 
 > [!NOTE]
-> Malo sam izmenio redosled reprezentacija u `groups.json` fajlu, kako bi se izgenerisao raspored utakmica po kolima identičan onom koji se desio zapravo.
+> Malo sam izmenio redosled reprezentacija u `groups.json` fajlu, kako bi se izgenerisao raspored utakmica po kolima identičan onom koji se desio zapravo u Parizu 2024. Sem blago izmenjenog redosleda nije dodato ništa od podataka.
