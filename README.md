@@ -15,16 +15,16 @@
 
 Apendiks D.1. za prvu fazu, u redosledu:
 1. Bodovi
-2. Međusobni duel
-3. Koš razlika iz međusobnih duela
+2. Pobednik međusobnog duela
+3. Poen razlika iz međusobnih duela
 4. Broj postignutih poena iz međusobnih duela
-5. Ukupna koš razlika
+5. Ukupna poen razlika
 6. Ukupan broj poena
 7. Pozicija na FIBA rang listi
 
 Apendiks D.5. za rangiranje od 1. do 9. mesta, u redosledu:
 1. Bodovi
-2. Koš razlika
+2. Poen razlika
 3. Broj postignutih poena
 4. Pozicija na FIBA rang listi
 
