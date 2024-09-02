@@ -19,6 +19,8 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain
         public bool IsInThreeTeamTie { get; set; } = false;
         public Dictionary<string, HeadToHeadStats> HeadToHead { get; set; } = new Dictionary<string, HeadToHeadStats>();
 
+        public GroupEntry() { }
+
         public GroupEntry(string group, Team team)
         {
             Group = group;

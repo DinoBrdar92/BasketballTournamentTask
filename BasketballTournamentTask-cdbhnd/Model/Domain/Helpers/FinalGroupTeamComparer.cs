@@ -7,10 +7,13 @@ using System.Threading.Tasks;
 
 namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
 {
-    internal class CrossGroupTeamComparer : IComparer<GroupEntry>
+    internal class FinalGroupTeamComparer : IComparer<GroupEntry>
     {
         public int Compare(GroupEntry? x, GroupEntry? y)
         {
+            x = x ?? new GroupEntry();
+            y = y ?? new GroupEntry();
+
             // Points comparison
             if (x.Points != y.Points)
             {
@@ -43,6 +46,7 @@ namespace BasketballTournamentTask_cdbhnd.Model.Domain.Helpers
 
             // FIBA ranking
             Debug.WriteLine($"{y.Team.ISOCode} is ranked higher than {x.Team.ISOCode} in FIBA rankings ({y.Points}. to {x.Points}.)");
+
             return x.Team.FIBARanking.CompareTo(y.Team.FIBARanking);
         }
     }

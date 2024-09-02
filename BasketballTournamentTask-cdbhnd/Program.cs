@@ -5,12 +5,14 @@ using BasketballTournamentTask_cdbhnd.Model.Domain.Helpers;
 using BasketballTournamentTask_cdbhnd.Model.Entities;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace BasketballTournamentTask_cdbhnd
 {
     internal class Program
     {
+        private const bool TEST_PREDEFINED_GAMES = false;
         public static DbContext Dbc { get; set; } = new();
 
         private static Dictionary<string, Team> allTeams = new();
@@ -47,15 +49,6 @@ namespace BasketballTournamentTask_cdbhnd
                 ExhibitionGamesToElo(teamCode);
             }
 
-
-            //raspored u kojem kolu ko s kim igra
-            Dictionary<string, List<(int, int)>> roundsSchedule = new Dictionary<string, List<(int, int)>>
-            {
-                { "I kolo", [(0, 1),(2, 3)] },
-                { "II kolo", [(1, 2),(3, 0)] },
-                { "III kolo", [(1, 3),(0, 2)] }
-            };
-
             Console.WriteLine("  ***************************************************");
             Console.WriteLine(" *    OLYMPICS BASKETBALL TOURNAMENT SIMULATOR     *");
             Console.WriteLine("**************************************************");
@@ -66,31 +59,32 @@ namespace BasketballTournamentTask_cdbhnd
             Console.WriteLine("\n");
             Console.WriteLine("                   - GROUP STAGE -");
 
-            //simulacija mečeva u grupi
-            foreach (var round in roundsSchedule)
+            //raspored u kojem kolu ko s kim igra
+
+
+            Dictionary<string, List<(int, int)>> roundsSchedule = new Dictionary<string, List<(int, int)>>
             {
-                Console.WriteLine($"{round.Key}:");
-
-                foreach (var group in allGroups)
-                {
-                    string groupLetter = group.Key;
-
-                    Console.WriteLine($"\tGrupa {groupLetter}:");
-
-                    foreach ((int, int) pair in round.Value)
-                    {
-                        GroupEntry ge1 = group.Value.ElementAt(pair.Item1).Value;
-                        GroupEntry ge2 = group.Value.ElementAt(pair.Item2).Value;
-
-                        GroupStageGame(ge1, ge2);
-
-                    }
-                }
-                Console.WriteLine();
-            }
+                { "I kolo", [(0, 1),(2, 3)] },
+                { "II kolo", [(1, 2),(3, 0)] },
+                { "III kolo", [(1, 3),(0, 2)] }
+            };
 
 
-            
+
+#pragma warning disable CS0162 // Unreachable code detected
+
+            //namerno potisnuo upozorenje jer tako radi po dizajnu, u zavisnosti od vrednosti polja TEST_PREDEFINED_GAMES iz zaglavlja
+            //simulacija mečeva u grupi
+            if (!TEST_PREDEFINED_GAMES)
+                SimulateAllGroupStageGames(roundsSchedule);
+            else
+                CreatePredefinedGroupStageGames();
+
+
+#pragma warning restore CS0162 // Unreachable code detected
+
+
+
             SortedDictionary<string, List<GroupEntry>> allGroupsList = new();
 
             Console.WriteLine("\n\n                    - GROUPS -");
@@ -103,16 +97,17 @@ namespace BasketballTournamentTask_cdbhnd
 
                 List<GroupEntry> groupList = allGroups[group.Key].Values.ToList();
                 
-                //proveriti da li u grupi postoji situacija gde 3 tima imaju isti broj bodova
+                //grupiši timove u grupi po bodovima i proveri postoji li situacija gde 3 tima imaju isti broj bodova
                 List<IGrouping<int, GroupEntry>> threeTeamTie = groupList.GroupBy(x => x.Points).Where(x => x.Count() > 2).ToList();
 
-                if (threeTeamTie.Count == 1 && (threeTeamTie.FirstOrDefault()).Count() == 3)
+                if (threeTeamTie.Count == 1 && threeTeamTie.FirstOrDefault()?.Count() == 3)
                 {
-                    threeTeamTie.FirstOrDefault().All(x => x.IsInThreeTeamTie = true);
+                    threeTeamTie.FirstOrDefault()?.All(x => x.IsInThreeTeamTie = true);
 
-                    int threeTeamTiePointsAmount = threeTeamTie.FirstOrDefault().FirstOrDefault().Points;
+                    GroupEntry oneOfThreeTeams = threeTeamTie.FirstOrDefault()?.FirstOrDefault() ?? new GroupEntry();
+                    int threeTeamTiePointsAmount = oneOfThreeTeams.Points;
 
-                    List<GroupEntry> tttMembersList = groupList.Where(x => x.Points == threeTeamTie.FirstOrDefault().FirstOrDefault().Points).ToList();
+                    List<GroupEntry> tttMembersList = groupList.Where(x => x.Points == threeTeamTiePointsAmount).ToList();
 
                     string[] tttNameCodes = tttMembersList.Select(x => x.Team.ISOCode).ToArray();
 
@@ -175,7 +170,7 @@ namespace BasketballTournamentTask_cdbhnd
                     sameRankSubTable.Add(group[i]);
                 }
 
-                sameRankSubTable.Sort(new CrossGroupTeamComparer());
+                sameRankSubTable.Sort(new FinalGroupTeamComparer());
                 bigTable.AddRange(sameRankSubTable);
             }
 
@@ -233,52 +228,83 @@ namespace BasketballTournamentTask_cdbhnd
 
             for (int i = 0; i < hats.Count / 2; i++)
             {
-                List<GroupEntry> topHat;
-                List<GroupEntry> bottomHat;
+                List<Game> potentialPairs = new List<Game>();
 
-                List<Game> potentialPairs;
+                List<GroupEntry> topHat = new List<GroupEntry>(hats[i]);
+                List<GroupEntry> bottomHat = new List<GroupEntry>(hats[hats.Count - i - 1]);
 
-                string top1GroupLetter, bottom1GroupLetter, top2GroupLetter, bottom2GroupLetter;
+                Team? topTeam1 = null, bottomTeam1 = null, topTeam2 = null, bottomTeam2 = null;
 
-                do
+                // prvo proveri da li postoje timovi u gornjem i donjem šeširu koji su iz iste grupe
+                foreach (string groupLetter in allGroups.Keys)
                 {
-                    topHat = new List<GroupEntry>(hats[i]);
-                    bottomHat = new List<GroupEntry>(hats[hats.Count - i - 1]);
-                    
-                    potentialPairs = new List<Game>();
-                    
-                    Random rand = new Random();
+                    if (!topHat.Any(t => t.Group == groupLetter) || !bottomHat.Any(bt => bt.Group == groupLetter))
+                    {
+                        continue;
+                    }
 
-                    int randomIndexTop = rand.Next(0, 2);
-                    int randomIndexBottom = rand.Next(0, 2);
+                    // ako postoje, upari timove tako da oni iz istih grupa ne igraju jedan protiv drugog
+                    GroupEntry topGroupEntry1 = topHat.Where(t => t.Group == groupLetter).FirstOrDefault() ?? new();
+                    GroupEntry bottomGroupEntry1 = bottomHat.Where(t => t.Group != groupLetter).FirstOrDefault() ?? new();
 
-                    Team top1 = topHat[randomIndexTop].Team;
-                    top1GroupLetter = topHat[randomIndexTop].Group;
+                    topTeam1 = topGroupEntry1.Team;
+                    bottomTeam1 = bottomGroupEntry1.Team;
 
-                    Team bottom1 = bottomHat[randomIndexBottom].Team;
-                    bottom1GroupLetter = bottomHat[randomIndexBottom].Group;
+                    topHat.Remove(topGroupEntry1);
+                    bottomHat.Remove(bottomGroupEntry1);
 
-                    Game game1 = new Game(top1, bottom1);
-                    potentialPairs.Add(game1);
+                    topTeam2 = topHat[0].Team;
+                    bottomTeam2 = bottomHat[0].Team;
+
+                    break;
+                }
+
+                // ako vrednost nijednog tima nije dodeljena, znači da su iz različitih šešira, te biraj nasumično
+                // (dovoljno je proveriti samo za jedan, ali sam proverio za sve, jer u suprotnom viče ispod da vrednost može biti null)
+                // ovde će ući samo ako imaju situacije da su npr. u šeširu E dva tima iz A, a u šeširu F da su timovi iz grupa B i C.
+                if (topTeam1 is null || bottomTeam1 is null || topTeam2 is null || bottomTeam2 is null)
+                {
+                    Random rand1 = new Random();
+
+                    int randomIndexTop = rand1.Next(0, 2);
+                    int randomIndexBottom = rand1.Next(0, 2);
+
+                    topTeam1 = topHat[randomIndexTop].Team;
+                    bottomTeam1 = bottomHat[randomIndexBottom].Team;
 
                     topHat.RemoveAt(randomIndexTop);
                     bottomHat.RemoveAt(randomIndexBottom);
 
-                    Team top2 = topHat[0].Team;
-                    top2GroupLetter = topHat[0].Group;
+                    topTeam2 = topHat[0].Team;
+                    bottomTeam2 = bottomHat[0].Team;
+                }
+                
+                Game game1 = new Game(topTeam1, bottomTeam1);
+                potentialPairs.Add(game1);
 
-                    Team bottom2 = bottomHat[0].Team;
-                    bottom2GroupLetter = bottomHat[0].Group;
+                Game game2 = new Game(topTeam2, bottomTeam2);
+                potentialPairs.Add(game2);
 
-                    Game game2 = new Game(top2, bottom2);
-                    potentialPairs.Add(game2);
-
-                    //ponovi ako se desi da je izvučen par gde su obe ekipe došle iz iste grupe
-                } while (top1GroupLetter == bottom1GroupLetter || top2GroupLetter == bottom2GroupLetter);
 
                 quarterfinalGames.AddRange(potentialPairs);
             }
 
+            //"Winners of the Quarter-Finals played by the teams from Pot D cannot play each other in the Semi-Final games."
+            Random rand = new Random();
+            int randomIndex = rand.Next(2, 4);
+
+            Game temp = quarterfinalGames[1];
+            quarterfinalGames[1] = quarterfinalGames[randomIndex];
+            quarterfinalGames[randomIndex] = temp;
+
+            //staviti par D/G da je gore, a E/F da je dole
+            if (randomIndex == 3)
+            {
+                temp = quarterfinalGames[2];
+                quarterfinalGames[2] = quarterfinalGames[3];
+                quarterfinalGames[3] = temp;
+            }
+            
             //štampaj izvučene parove
             Console.WriteLine("\nIzvučeni parovi:");
             for (int i = 0; i < quarterfinalGames.Count; i++)
@@ -375,30 +401,138 @@ namespace BasketballTournamentTask_cdbhnd
             team.ELORating = elo;
         }
 
+        private static void SimulateAllGroupStageGames(Dictionary<string, List<(int, int)>> roundsSchedule)
+        {
+            foreach (var round in roundsSchedule)
+            {
+                Console.WriteLine($"{round.Key}:");
+
+                foreach (var group in allGroups)
+                {
+                    string groupLetter = group.Key;
+
+                    Console.WriteLine($"\tGrupa {groupLetter}:");
+
+                    foreach ((int, int) pair in round.Value)
+                    {
+                        GroupEntry teamInGroup1 = group.Value.ElementAt(pair.Item1).Value;
+                        GroupEntry teamInGroup2 = group.Value.ElementAt(pair.Item2).Value;
+
+                        GroupStageGame(teamInGroup1, teamInGroup2);
+
+                    }
+                }
+                Console.WriteLine();
+            }
+        }
+
+        private static void CreatePredefinedGroupStageGames()
+        {
+            //for copy-pasting and just editing results
+            /*
+            Console.WriteLine("I kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 0, 0, 0);
+
+            Console.WriteLine("II kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 0, 0, 0);
+
+            Console.WriteLine("III kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 0, 0, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 0, 0, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 0, 0, 0);
+             */
+
+            // actual results
+            Console.WriteLine("I kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 92, 80, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("GRE") ?? new(), GetGroupEntryFromTeamCode("CAN") ?? new(), 79, 86, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("GER") ?? new(), GetGroupEntryFromTeamCode("JPN") ?? new(), 97, 77, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 78, 66, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("SSD") ?? new(), GetGroupEntryFromTeamCode("PRI") ?? new(), 90, 79, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 84, 110, 0);
+
+            Console.WriteLine("II kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("ESP") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 84, 77, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("AUS") ?? new(), 93, 83, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("FRA") ?? new(), 90, 94, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("BRA") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 73, 86, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("SRB") ?? new(), 66, 107, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("USA") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 103, 86, 0);
+
+            Console.WriteLine("III kolo:\n\tGrupa A:");
+            GroupStageGame(GetGroupEntryFromTeamCode("AUS") ?? new(), GetGroupEntryFromTeamCode("GRE") ?? new(), 71, 77, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("CAN") ?? new(), GetGroupEntryFromTeamCode("ESP") ?? new(), 88, 85, 0);
+            Console.WriteLine("\tGrupa B:");
+            GroupStageGame(GetGroupEntryFromTeamCode("JPN") ?? new(), GetGroupEntryFromTeamCode("BRA") ?? new(), 84, 102, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("FRA") ?? new(), GetGroupEntryFromTeamCode("GER") ?? new(), 71, 85, 0);
+            Console.WriteLine("\tGrupa C:");
+            GroupStageGame(GetGroupEntryFromTeamCode("PRI") ?? new(), GetGroupEntryFromTeamCode("USA") ?? new(), 83, 104, 0);
+            GroupStageGame(GetGroupEntryFromTeamCode("SRB") ?? new(), GetGroupEntryFromTeamCode("SSD") ?? new(), 96, 85, 0);
+        }
+
+        private static (int team1Score, int team2Score, int overtimeCounter) SimulateGame(GroupEntry teamInGroup1, GroupEntry teamInGroup2)
+        {
+            int overtimeCounter = 0;
+            // adaptacija ELO rejtinga funkciji normalne raspodele za formulu ispod, da ELO rejting nema toliko drastičan efekat na razliku u postignutim poenima
+            Func<double, double> Formula = (double eloRating) => { return eloRating / 80 + 25; };
+
+            int team1Score = (int)Math.Round(Formula(teamInGroup1.Team.ELORating) * RandomFromNormalDistribution(2.0, 0.15));
+            int team2Score = (int)Math.Round(Formula(teamInGroup2.Team.ELORating) * RandomFromNormalDistribution(2.0, 0.15));
+
+            // ako timovi imaju isti broj poena, ide se u produžetke koji se igraju dokle god jedan tim ne bude imao više poena
+            while (team1Score == team2Score)
+            {
+                team1Score += (int)Math.Round(Formula(teamInGroup1.Team.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35));
+                team2Score += (int)Math.Round(Formula(teamInGroup2.Team.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35));
+                overtimeCounter++;
+            }
+
+            return (team1Score, team2Score, overtimeCounter);
+        }
+
+
         /// <summary>
         /// Simulira meč grupne faze između 2 ekipe
         /// </summary>
-        /// <param name="team1">Prvi tim</param>
-        /// <param name="team2">Drugi tim</param>
-        private static void GroupStageGame(GroupEntry team1, GroupEntry team2)
+        /// <param name="teamInGroup1">Prvi tim</param>
+        /// <param name="teamInGroup2">Drugi tim</param>
+        private static void GroupStageGame(GroupEntry teamInGroup1, GroupEntry teamInGroup2)
         {
-            int overtimeCounter = 0;
-            string overtimeText = "";
+            (int team1Score, int team2Score, int overtimeCounter) = SimulateGame(teamInGroup1, teamInGroup2);
 
-            string team1Name = team1.Team.Name;
-            string team2Name = team2.Team.Name;
+            GroupStageGame(teamInGroup1, teamInGroup2, team1Score, team2Score, overtimeCounter);
 
-            Func<double, double> Formula = (double eloRating) => { return eloRating / 80 + 25; };
+        }
 
-            int team1Score = (int)(Math.Round(Formula(team1.Team.ELORating) * RandomFromNormalDistribution(2.0, 0.15)));
-            int team2Score = (int)(Math.Round(Formula(team2.Team.ELORating) * RandomFromNormalDistribution(2.0, 0.15)));
+        private static void GroupStageGame(GroupEntry teamInGroup1, GroupEntry teamInGroup2, int team1Score, int team2Score, int overtimeCounter)
+        {
+            string team1Name = teamInGroup1.Team.Name;
+            string team2Name = teamInGroup2.Team.Name;
 
-            while (team1Score == team2Score)
-            {
-                team1Score += (int)(Math.Round(Formula(team1.Team.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35)));
-                team2Score += (int)(Math.Round(Formula(team2.Team.ELORating) / 8 * RandomFromNormalDistribution(2.0, 0.35)));
-                overtimeCounter++;
-            }
+            string overtimeText;
 
             switch (overtimeCounter)
             {
@@ -419,41 +553,74 @@ namespace BasketballTournamentTask_cdbhnd
             HeadToHeadStats team1H2H = new HeadToHeadStats();
             HeadToHeadStats team2H2H = new HeadToHeadStats();
 
-            team1.HeadToHead.Add(team2.Team.ISOCode, team1H2H);
-            team2.HeadToHead.Add(team1.Team.ISOCode, team2H2H);
+            teamInGroup1.HeadToHead.Add(teamInGroup2.Team.ISOCode, team1H2H);
+            teamInGroup2.HeadToHead.Add(teamInGroup1.Team.ISOCode, team2H2H);
 
-            team1.PointsScored += team1Score;
-            team1.PointsReceived += team2Score;
+            teamInGroup1.PointsScored += team1Score;
+            teamInGroup1.PointsReceived += team2Score;
             team1H2H.PointsScored = team1Score;
             team1H2H.PointsReceived = team2Score;
 
-            team2.PointsScored += team2Score;
-            team2.PointsReceived += team1Score;
+            teamInGroup2.PointsScored += team2Score;
+            teamInGroup2.PointsReceived += team1Score;
             team2H2H.PointsScored = team2Score;
             team2H2H.PointsReceived = team1Score;
 
             if (team1Score > team2Score)
             {
-                team1.Wins++;
-                team2.Losses++;
+                teamInGroup1.Wins++;
+                teamInGroup2.Losses++;
 
                 team1H2H.Wins++;
                 team2H2H.Losses++;
             }
             else if (team2Score > team1Score)
             {
-                team2.Wins++;
-                team1.Losses++;
+                teamInGroup2.Wins++;
+                teamInGroup1.Losses++;
 
                 team2H2H.Wins++;
                 team1H2H.Losses++;
             }
 
-            CalculateEloRating(team1.Team, team2.Team, team1Score, team2Score, 25);
+            CalculateEloRating(teamInGroup1.Team, teamInGroup2.Team, team1Score, team2Score, 25);
+        }
 
+        private static GroupEntry? GetGroupEntryFromTeam(Team team)
+        {
+            GroupEntry? teamInGroup;
+
+            foreach (var group in allGroups.Values)
+            {
+                teamInGroup = group.Where(g => g.Value.Team.Equals(team)).FirstOrDefault().Value;
+
+                if (teamInGroup != null)
+                {
+                    return teamInGroup;
+                }
+            }
+
+            return null;
+        }
+
+        private static GroupEntry? GetGroupEntryFromTeamCode(string teamCode)
+        {
+            Team? team = allTeams.Where(t => t.Key == teamCode).FirstOrDefault().Value;
+
+            if (team != null)
+            {
+                return GetGroupEntryFromTeam(team);
+            }
+            else
+            {
+                return null;
+            }
+            
         }
 
         
+
+
 
         /// <summary>
         /// Simulira mečeve nokaut faze. Glavna razlika u odnosu na simuliranje mečeva grupne faze je što se 
@@ -461,7 +628,7 @@ namespace BasketballTournamentTask_cdbhnd
         /// s obzirom da se u nokaut fazi igra čvršća odbrana.
         /// </summary>
         /// <param name="game">meč koji sadrži dva tima</param>
-        /// <returns>Torka u kojoj je prvi član (Item1) pobednik, a drugi član (Item2) poraženi iz duela</returns>
+        /// <returns>Torka u kojoj je prvi član (Item1) pobednik, a drugi član (Item2) poraženi</returns>
         private static (Team, Team) KnockoutStageGame(Game game)
         {
             Team team1 = game.Team1;
@@ -475,13 +642,13 @@ namespace BasketballTournamentTask_cdbhnd
 
             Func<double, double> Formula = (double eloRating) => { return eloRating / 80 + 25; };
 
-            int team1Score = (int)(Math.Round(Formula(team1.ELORating) * RandomFromNormalDistribution(1.8, 0.12)));
-            int team2Score = (int)(Math.Round(Formula(team2.ELORating) * RandomFromNormalDistribution(1.8, 0.12)));
+            int team1Score = (int)Math.Round(Formula(team1.ELORating) * RandomFromNormalDistribution(1.8, 0.12));
+            int team2Score = (int)Math.Round(Formula(team2.ELORating) * RandomFromNormalDistribution(1.8, 0.12));
 
             while (team1Score == team2Score)
             {
-                team1Score += (int)(Math.Round(Formula(team1.ELORating) / 8 * RandomFromNormalDistribution(1.8, 0.30)));
-                team2Score += (int)(Math.Round(Formula(team2.ELORating) / 8 * RandomFromNormalDistribution(1.8, 0.30)));
+                team1Score += (int)Math.Round(Formula(team1.ELORating) / 8 * RandomFromNormalDistribution(1.8, 0.30));
+                team2Score += (int)Math.Round(Formula(team2.ELORating) / 8 * RandomFromNormalDistribution(1.8, 0.30));
                 overtimeCounter++;
             }
 
@@ -504,10 +671,11 @@ namespace BasketballTournamentTask_cdbhnd
 
             Console.WriteLine($"\t{team1Name} - {team2Name} ({team1Score}:{team2Score}){overtimeText}");
 
-
-            //računanje ELO ratinga
-            CalculateEloRating(team1, team2, team1Score, team2Score, 15);
             
+
+            //računanje novog ELO ratinga
+            CalculateEloRating(team1, team2, team1Score, team2Score, 15);
+
 
             if (team1Score > team2Score)
             {
@@ -523,11 +691,11 @@ namespace BasketballTournamentTask_cdbhnd
         /// <summary>
         /// Računa ELO rejting na osnovu odigranog meča.
         /// </summary>
-        /// <param name="team1"></param>
-        /// <param name="team2"></param>
-        /// <param name="team1Score"></param>
-        /// <param name="team2Score"></param>
-        /// <param name="adjustment"></param>
+        /// <param name="team1">Prvi tim</param>
+        /// <param name="team2">Drugi tim</param>
+        /// <param name="team1Score">Broj postignutih poena prvog tima</param>
+        /// <param name="team2Score">Broj postignutih poena drugog tima</param>
+        /// <param name="adjustment">Koliko obično najviše bude razlika između poena dva tima</param>
         private static void CalculateEloRating(Team team1, Team team2, int team1Score, int team2Score, int adjustment)
         {
             double team1Elo = team1.ELORating;
@@ -539,19 +707,12 @@ namespace BasketballTournamentTask_cdbhnd
             int team1ActualOutcome = (team1Score > team2Score) ? 1 : 0;
             int team2ActualOutcome = (team2Score > team1Score) ? 1 : 0;
 
-            team1Elo = team1Elo + adjustment * (team1ActualOutcome - team1expectedOutcome);
-            team2Elo = team2Elo + adjustment * (team2ActualOutcome - team2expectedOutcome);
+            team1.ELORating = team1Elo + adjustment * (team1ActualOutcome - team1expectedOutcome);
+            team2.ELORating = team2Elo + adjustment * (team2ActualOutcome - team2expectedOutcome);
 
-            team1.ELORating = team1Elo;
-            team2.ELORating = team2Elo;
-        }
 
-        private static void CalculateEloRating(Game game, int adjustment)
-        {
-            if (game.Team1Score == null || game.Team2Score == null)
-                throw new ArgumentNullException();
+            Debug.WriteLine($"{team1.ISOCode} - {team2.ISOCode} ({team1Score}:{team2Score});\t ELO update: \t{team1.ISOCode}: {(int)team1Elo} -> {(int)team1.ELORating};\t\t{team2.ISOCode}: {(int)team2Elo} -> {(int)team2.ELORating}");
 
-            CalculateEloRating(game.Team1, game.Team2, game.Team1Score.Value, game.Team2Score.Value, adjustment);
         }
 
 
