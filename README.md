@@ -1,7 +1,7 @@
 # Simulacija košarkaškog turnira na Olimpijskim igrama
 ## Dino Brdar za CodeBehind praksu
 
-- Zadatak je rađen u .NET 8.0 okruženju.
+- Zadatak je rađen u .NET 8.0 okruženju - nisu instalirani nikakvi dodatni NuGet paketi.
 
 - Za simuliranje rezultata je korišćena random selekcija iz normalne raspodele, koja je dodeljena svakom timu u zavisnosti od vrednosti izračunatog ELO rejtinga (a koji je aproksimiran na osnovu FIBA rankinga i konstantno se ažurira nakon svakog odigranog meča).
 
