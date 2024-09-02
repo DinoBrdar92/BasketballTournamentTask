@@ -16,7 +16,7 @@ Apendiks D.1. za prvu fazu, u redosledu:
 6. Ukupan broj poena
 7. Pozicija na FIBA rang listi
 
-Apendiks D.4. za ukrštanje grupa, u redosledu:
+Apendiks D.5. za rangiranje od 1. do 9. mesta, u redosledu:
 1. Bodovi
 2. Koš razlika
 3. Broj postignutih poena
